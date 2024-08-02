@@ -1,6 +1,6 @@
 //! Transient is, in essence, a custom virtual machine and file format. The transient processor
 //! loads a transient "image' into the virtual address space and begins execution at offset 0x00.
-//! 
+//!
 //!
 //! # Opcodes
 //! - 0x01: MOV from source1 into destination
@@ -46,12 +46,14 @@ impl<const TRANSIENT_MEM_MAX: usize> TransientState<TRANSIENT_MEM_MAX> {
         }
     }
     pub fn load_text(&mut self, offset: usize, text: &[u8]) {
-        assert!(self.memory.len() >= text.len(), "text section doesn't fit into transient memory");
-        self.memory[offset..text.len()+offset].copy_from_slice(text);
+        assert!(
+            self.memory.len() >= text.len(),
+            "text section doesn't fit into transient memory"
+        );
+        self.memory[offset..text.len() + offset].copy_from_slice(text);
     }
 }
 
 fn main() {
-    // TODO: Future code for loading data from file
     println!("TRANSIENT: Starting bootstrap");
 }

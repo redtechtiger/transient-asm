@@ -42,9 +42,9 @@ const HLT: u8 = 0xFF;
 
 use std::env::args;
 use std::fs::File;
-use std::io::Read;
+use std::io::{Read, Write};
 
-const TRANSIENT_MEM_MAX: usize = 40_000;
+const TRANSIENT_MEM_MAX: usize = 32;
 
 #[derive(PartialEq)]
 pub enum TransientMode {
@@ -102,37 +102,37 @@ impl<const TRANSIENT_MEM_MAX: usize> TransientState<TRANSIENT_MEM_MAX> {
         let source2 = instruction[2] as usize;
         let destination = instruction[3] as usize;
         match opcode {
-            MOV => {
+            MOV => { 
                 self.memory[destination] = self.memory[source1];
-                self.program_counter + 1
+                self.program_counter + 4
             }
             ADD => {
                 self.memory[destination] = self.memory[source1] + self.memory[source2];
-                self.program_counter + 1
+                self.program_counter + 4
             }
             SUB => {
                 self.memory[destination] = self.memory[source1] - self.memory[source2];
-                self.program_counter + 1
+                self.program_counter + 4
             }
             MUL => {
                 self.memory[destination] = self.memory[source1] * self.memory[source2];
-                self.program_counter + 1
+                self.program_counter + 4
             }
             DIV_T => {
                 self.memory[destination] = self.memory[source1] / self.memory[source2];
-                self.program_counter + 1
+                self.program_counter + 4
             }
             DIV_R => {
                 self.memory[destination] = (self.memory[source1] as f64 / self.memory[source2] as f64) as u8;
-                self.program_counter + 1
+                self.program_counter + 4
             }
             CGT => {
                 self.memory[destination] = (self.memory[source1] > self.memory[source2]) as u8;
-                self.program_counter + 1
+                self.program_counter + 4
             }
             CLT => {
                 self.memory[destination] = (self.memory[source1] < self.memory[source2]) as u8;
-                self.program_counter + 1
+                self.program_counter + 4
             }
             JMP => {
                 source1
@@ -140,7 +140,7 @@ impl<const TRANSIENT_MEM_MAX: usize> TransientState<TRANSIENT_MEM_MAX> {
             JIE => {
                 if self.memory[source2] == 0 {
                     // Zero
-                    self.program_counter + 1
+                    self.program_counter + 4
                 } else {
                     // Nonzero
                     source1
@@ -152,20 +152,20 @@ impl<const TRANSIENT_MEM_MAX: usize> TransientState<TRANSIENT_MEM_MAX> {
                     source1
                 } else {
                     // Nonzero
-                    self.program_counter + 1
+                    self.program_counter + 4
                 }
             }
             PUT_I => {
                 println!("{}", self.memory[source1]);
-                self.program_counter + 1
+                self.program_counter + 4
             }
             PUT_C => {
                 println!("{}", char::from(self.memory[source1]));
-                self.program_counter + 1
+                self.program_counter + 4
             }
             XSA => {
                 self.memory[destination] = self.execution_length as u8;
-                self.program_counter + 1
+                self.program_counter + 4
             }
             HLT => {
                 self.mode = TransientMode::HALTED;
@@ -180,6 +180,19 @@ impl<const TRANSIENT_MEM_MAX: usize> TransientState<TRANSIENT_MEM_MAX> {
 }
 
 fn main() {
+    
+    // DEBUG: Write a 1+2 program
+    let _ROM: [u8; 11] = [
+        0x02, 0x09, 0x0A, 0x0B,
+        0x0C, 0x0B, 0x00, 0x00,
+        0xFF,
+        0x01, 0x01
+    ];
+    let mut one_plus_two = File::create("opt.bin").unwrap();
+    one_plus_two.write(&_ROM).unwrap();
+    one_plus_two.flush().unwrap();
+
+
     // Verify input arguments
     let args: Vec<String> = args().collect();
     if args.len() != 2 {
@@ -214,4 +227,5 @@ fn main() {
 
     // Begin executing
     transient_state.run(0);
+    println!("Info: End of program reached");
 }

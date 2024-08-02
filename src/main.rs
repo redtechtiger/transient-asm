@@ -41,6 +41,7 @@ pub enum TransientMode {
 pub struct TransientState<const TRANSIENT_MEM_MAX: usize> {
     pub memory: [u8; TRANSIENT_MEM_MAX],
     pub execution_length: usize, // Length of executable code in memory
+    pub program_counter: usize,
     pub mode: TransientMode,
 }
 
@@ -49,6 +50,7 @@ impl<const TRANSIENT_MEM_MAX: usize> TransientState<TRANSIENT_MEM_MAX> {
         TransientState {
             memory: [0u8; TRANSIENT_MEM_MAX],
             execution_length: 0,
+            program_counter: 0,
             mode: TransientMode::HALTED,
         }
     }

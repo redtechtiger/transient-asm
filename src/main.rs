@@ -182,13 +182,13 @@ impl<const TRANSIENT_MEM_MAX: usize> TransientState<TRANSIENT_MEM_MAX> {
 fn main() {
     // Verify input arguments
     let args: Vec<String> = args().collect();
-    if args.len() != 1 {
+    if args.len() != 2 {
         println!("Stop: Incorrect amount of arguments!");
         return;
     }
 
     // Open file for reading
-    let mut input_file = match File::open(&args[0]) {
+    let mut input_file = match File::open(&args[1]) {
         Ok(x) => x,
         Err(_) => {
             println!("Stop: Failed to open file");

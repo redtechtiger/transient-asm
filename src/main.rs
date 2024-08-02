@@ -43,6 +43,8 @@ pub struct TransientState<const TRANSIENT_MEM_MAX: usize> {
 }
 
 impl<const TRANSIENT_MEM_MAX: usize> TransientState<TRANSIENT_MEM_MAX> {
+    /// Initialize a new, empty instance of a transient processor/state with a transient memory
+    /// size of TRANSIENT_MEM_MAX bytes.
     pub fn new() -> Self {
         TransientState {
             memory: [0u8; TRANSIENT_MEM_MAX],
@@ -51,12 +53,27 @@ impl<const TRANSIENT_MEM_MAX: usize> TransientState<TRANSIENT_MEM_MAX> {
             mode: TransientMode::HALTED,
         }
     }
+    /// Loads a transient memory image into a state/processor at a specified offset.
     pub fn load_text(&mut self, offset: usize, text: &[u8]) {
         assert!(
             self.memory.len() >= text.len(),
             "text section doesn't fit into transient memory"
         );
         self.memory[offset..text.len() + offset].copy_from_slice(text);
+    }
+    /// Starts a loop that runs the processor until halted
+    pub fn run(&mut self, start: usize) {
+        self.program_counter = start;
+        self.mode = TransientMode::RUNNING;
+        
+    }
+    /// Fetches an instruction at the given address (mind the alignment!)
+    pub fn resolve_instruction(&self, base: usize) -> [u8; 4]{
+        assert!(
+            self.memory.len() > base+3,
+            "attempted instruction resolution beyond memory space"
+        );
+        self.memory[base..][..4].try_into().unwrap()
     }
 }
 
@@ -93,4 +110,6 @@ fn main() {
     transient_state.load_text(0, &transient_image);
     println!("Info: Transient image loaded");
 
+    // Begin executing
+    transient_state.run(0);
 }

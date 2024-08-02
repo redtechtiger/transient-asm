@@ -156,11 +156,11 @@ impl<const TRANSIENT_MEM_MAX: usize> TransientState<TRANSIENT_MEM_MAX> {
                 }
             }
             PUT_I => {
-                println!("{}", self.memory[source1]);
+                print!("{}", self.memory[source1]);
                 self.program_counter + 4
             }
             PUT_C => {
-                println!("{}", char::from(self.memory[source1]));
+                print!("{}", char::from(self.memory[source1]));
                 self.program_counter + 4
             }
             XSA => {
@@ -182,11 +182,12 @@ impl<const TRANSIENT_MEM_MAX: usize> TransientState<TRANSIENT_MEM_MAX> {
 fn main() {
     
     // DEBUG: Write a 1+2 program
-    let _ROM: [u8; 11] = [
-        0x02, 0x09, 0x0A, 0x0B,
-        0x0C, 0x0B, 0x00, 0x00,
-        0xFF,
-        0x01, 0x01
+    let _ROM: [u8; 19] = [
+        0x0D, 0x10, 0x00, 0x00,
+        0x0D, 0x11, 0x00, 0x00,
+        0x0D, 0x12, 0x00, 0x00,
+        0xFF, 0x00, 0x00, 0x00,
+        0x48, 0x69, 0x0A
     ];
     let mut one_plus_two = File::create("opt.bin").unwrap();
     one_plus_two.write(&_ROM).unwrap();

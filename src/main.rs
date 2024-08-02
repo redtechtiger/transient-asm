@@ -24,6 +24,12 @@
 //! fill the transient memory with program data up to the programs length. To get the length of the
 //! program, see opcodes above.
 
+use std::env::args;
+use std::fs::File;
+use std::io::Read;
+
+const TRANSIENT_MEM_MAX: usize = 40_000;
+
 pub enum TransientMode {
     RUNNING,
     HALTED,
@@ -55,5 +61,36 @@ impl<const TRANSIENT_MEM_MAX: usize> TransientState<TRANSIENT_MEM_MAX> {
 }
 
 fn main() {
-    println!("TRANSIENT: Starting bootstrap");
+    // Verify input arguments
+    let args: Vec<String> = args().collect();
+    if args.len() != 1 {
+        println!("Stop: Incorrect amount of arguments!");
+        return;
+    }
+
+    // Open file for reading
+    let mut input_file = match File::open(&args[0]) {
+        Ok(x) => x,
+        Err(_) => {
+            println!("Stop: Failed to open file");
+            return;
+        }
+    };
+
+    // Read bytes into buffer
+    let mut transient_image: Vec<u8> = vec![];
+    if let Err(_) = input_file.read_to_end(&mut transient_image) {
+        println!("Stop: Failed to read file contents");
+        return;
+    }
+    println!("Info: File read");
+
+    // Initialize transient processor
+    let mut transient_state = TransientState::<TRANSIENT_MEM_MAX>::new();
+    println!("Info: Transient processor initialized");
+
+    // Copy over image at offset 0 (at the start)
+    transient_state.load_text(0, &transient_image);
+    println!("Info: Transient image loaded");
+
 }

@@ -52,6 +52,10 @@ impl<const TRANSIENT_MEM_MAX: usize> TransientState<TRANSIENT_MEM_MAX> {
             mode: TransientMode::HALTED,
         }
     }
+    pub fn load_text(&mut self, offset: usize, text: &[u8]) {
+        assert!(self.memory.len() >= text.len(), "text section doesn't fit into transient memory");
+        self.memory[offset..text.len()+offset].copy_from_slice(text);
+    }
 }
 
 fn main() {

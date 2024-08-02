@@ -1,4 +1,3 @@
-
 /// Data to be executed by the state machine. Execution starts at offset 0 (first byte) and each
 /// instruction is 4 bytes long. (opcode, source1, source2, destination)
 ///
@@ -29,14 +28,23 @@
 /// Any transient address
 ///
 /// # Transient addresses
-/// These can range from 0 up to TRANSIENT_MAX. Do note, however, that the transient processor will
+/// These can range from 0 up to TRANSIENT_MEM_MAX. Do note, however, that the transient processor will
 /// fill the transient memory with program data up to the programs length. To get the length of the
 /// program, see opcodes above.
-const ROM: &'static [u8] = &[
-    255, 200
-];
+const ROM: &'static [u8] = &[255, 200];
 
-fn main() {
-    println!("Hello, world!");
+pub enum TransientMode {
+    RUNNING,
+    HALTED,
 }
 
+pub struct TransientState<const TRANSIENT_MEM_MAX: usize> {
+    pub memory: [u8; TRANSIENT_MEM_MAX],
+    pub execution_length: usize, // Length of executable code in memory
+    pub mode: TransientMode,
+}
+
+fn main() {
+    // TODO: Future code for loading data from file
+    println!("TRANSIENT: Starting bootstrap");
+}

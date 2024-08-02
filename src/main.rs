@@ -14,8 +14,8 @@
 //! - 0x09: JMP stops current execution and jumps to code in source1
 //! - 0x0A: JIE stops current execution and jumps to code in source1 ONLY IF source2 is non-zero
 //! - 0x0B: JNE stops current execution and jumps to code in source1 ONLY IF source2 is zero
-//! - 0x0C: PUT prints data to the screen (int)
-//! - 0x0D: PUT prints data to the screen (char)
+//! - 0x0C: PUT prints data at source1 to the screen (int)
+//! - 0x0D: PUT prints data at source1 to the screen (char)
 //! - 0x0E: XSA gets the length of code in ROM and stores in destination
 //! - 0xFF: HLT halts execution and stops processor
 //!
@@ -109,6 +109,67 @@ impl<const TRANSIENT_MEM_MAX: usize> TransientState<TRANSIENT_MEM_MAX> {
             ADD => {
                 self.memory[destination] = self.memory[source1] + self.memory[source2];
                 self.program_counter + 1
+            }
+            SUB => {
+                self.memory[destination] = self.memory[source1] - self.memory[source2];
+                self.program_counter + 1
+            }
+            MUL => {
+                self.memory[destination] = self.memory[source1] * self.memory[source2];
+                self.program_counter + 1
+            }
+            DIV_T => {
+                self.memory[destination] = self.memory[source1] / self.memory[source2];
+                self.program_counter + 1
+            }
+            DIV_R => {
+                self.memory[destination] = (self.memory[source1] as f64 / self.memory[source2] as f64) as u8;
+                self.program_counter + 1
+            }
+            CGT => {
+                self.memory[destination] = (self.memory[source1] > self.memory[source2]) as u8;
+                self.program_counter + 1
+            }
+            CLT => {
+                self.memory[destination] = (self.memory[source1] < self.memory[source2]) as u8;
+                self.program_counter + 1
+            }
+            JMP => {
+                source1
+            }
+            JIE => {
+                if self.memory[source2] == 0 {
+                    // Zero
+                    self.program_counter + 1
+                } else {
+                    // Nonzero
+                    source1
+                }
+            }
+            JNE => {
+                if self.memory[source2] == 0 {
+                    // Zero
+                    source1
+                } else {
+                    // Nonzero
+                    self.program_counter + 1
+                }
+            }
+            PUT_I => {
+                println!("{}", self.memory[source1]);
+                self.program_counter + 1
+            }
+            PUT_C => {
+                println!("{}", char::from(self.memory[source1]));
+                self.program_counter + 1
+            }
+            XSA => {
+                self.memory[destination] = self.execution_length as u8;
+                self.program_counter + 1
+            }
+            HLT => {
+                self.mode = TransientMode::HALTED;
+                self.program_counter
             }
             // TODO: Implement all!
             _ => {

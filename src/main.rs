@@ -3,7 +3,7 @@
 //!
 //!
 //! # Opcodes
-//! - 0x01: MOV from source1 into destination
+//! - 0x01: MOV byte from source1 into destination
 //! - 0x02: ADD source1 and source2 and store result in destination
 //! - 0x03: SUB source2 from source1 and store result in destination
 //! - 0x04: MUL source1 and source2 and store result in destination
@@ -24,12 +24,29 @@
 //! fill the transient memory with program data up to the programs length. To get the length of the
 //! program, see opcodes above.
 
+const MOV: u8 = 0x01;
+const ADD: u8 = 0x02;
+const SUB: u8 = 0x03;
+const MUL: u8 = 0x04;
+const DIV_T: u8 = 0x05;
+const DIV_R: u8 = 0x06;
+const CGT: u8 = 0x07;
+const CLT: u8 = 0x08;
+const JMP: u8 = 0x09;
+const JIE: u8 = 0x0A;
+const JNE: u8 = 0x0B;
+const PUT_I: u8 = 0x0C;
+const PUT_C: u8 = 0x0D;
+const XSA: u8 = 0x0E;
+const HLT: u8 = 0xFF;
+
 use std::env::args;
 use std::fs::File;
 use std::io::Read;
 
 const TRANSIENT_MEM_MAX: usize = 40_000;
 
+#[derive(PartialEq)]
 pub enum TransientMode {
     RUNNING,
     HALTED,
@@ -65,7 +82,10 @@ impl<const TRANSIENT_MEM_MAX: usize> TransientState<TRANSIENT_MEM_MAX> {
     pub fn run(&mut self, start: usize) {
         self.program_counter = start;
         self.mode = TransientMode::RUNNING;
-        
+        while self.mode == TransientMode::RUNNING {
+            let instruction = self.resolve_instruction(self.program_counter);
+            self.program_counter = self.execute_instruction(instruction);
+        }
     }
     /// Fetches an instruction at the given address (mind the alignment!)
     pub fn resolve_instruction(&self, base: usize) -> [u8; 4]{
@@ -74,6 +94,27 @@ impl<const TRANSIENT_MEM_MAX: usize> TransientState<TRANSIENT_MEM_MAX> {
             "attempted instruction resolution beyond memory space"
         );
         self.memory[base..][..4].try_into().unwrap()
+    }
+    /// Executes an instruction and returns the next program counter
+    pub fn execute_instruction(&mut self, instruction: [u8; 4]) -> usize {
+        let opcode = instruction[0];
+        let source1 = instruction[1] as usize;
+        let source2 = instruction[2] as usize;
+        let destination = instruction[3] as usize;
+        match opcode {
+            MOV => {
+                self.memory[destination] = self.memory[source1];
+                self.program_counter + 1
+            }
+            ADD => {
+                self.memory[destination] = self.memory[source1] + self.memory[source2];
+                self.program_counter + 1
+            }
+            // TODO: Implement all!
+            _ => {
+                panic!("Halt: Unsupported opcode");
+            }
+        }
     }
 }
 

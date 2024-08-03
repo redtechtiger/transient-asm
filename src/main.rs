@@ -194,9 +194,8 @@ impl<const TRANSIENT_MEM_MAX: usize> TransientState<TRANSIENT_MEM_MAX> {
                 self.mode = TransientMode::HALTED;
                 self.program_counter
             }
-            // TODO: Implement all!
             _ => {
-                panic!("Halt: Unsupported opcode");
+                panic!("Halt: Unsupported opcode! Instruction: 0x{:0>2x}{:0>2x}{:0>2x}{:0>2x}", opcode, source1, source2, destination);
             }
         }
     }

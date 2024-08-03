@@ -10,14 +10,14 @@
 //! - 0x05: DIV source1 by source2 and store result in destination (truncated)
 //! - 0x06: DIV source1 by source2 and store result in destination (rounded)
 //! - 0x07: REM divides source1 by source2 and stores the remainder in destination
-//! - 0x07: CGT compare if source1 is greater than source2, and if so, store 1 in destination
-//! - 0x08: CLT compare if source1 is less than source2, and if so, store 1 in destination
-//! - 0x09: JMP stops current execution and jumps to code in source1
-//! - 0x0A: JIE stops current execution and jumps to code in source1 ONLY IF source2 is non-zero
-//! - 0x0B: JNE stops current execution and jumps to code in source1 ONLY IF source2 is zero
-//! - 0x0C: PUT prints data at source1 to the screen (int)
-//! - 0x0D: PUT prints data at source1 to the screen (char)
-//! - 0x0E: XSA gets the length of code in ROM and stores in destination
+//! - 0x08: CGT compare if source1 is greater than source2, and if so, store 1 in destination
+//! - 0x09: CLT compare if source1 is less than source2, and if so, store 1 in destination
+//! - 0x0A: JMP stops current execution and jumps to code in source1
+//! - 0x0B: JIE stops current execution and jumps to code in source1 ONLY IF source2 is non-zero
+//! - 0x0C: JNE stops current execution and jumps to code in source1 ONLY IF source2 is zero
+//! - 0x0D: PUT prints data at source1 to the screen (int)
+//! - 0x0E: PUT prints data at source1 to the screen (char)
+//! - 0x0F: XSA gets the length of code in ROM and stores in destination
 //! - 0xFF: HLT halts execution and stops processor
 //!
 //! # Transient addresses
@@ -204,12 +204,10 @@ impl<const TRANSIENT_MEM_MAX: usize> TransientState<TRANSIENT_MEM_MAX> {
 fn main() {
     
     // DEBUG: Write a 1+2 program
-    let _ROM: [u8; 19] = [
-        0x0E, 0x10, 0x00, 0x00,
-        0x0E, 0x11, 0x00, 0x00,
-        0x0E, 0x12, 0x00, 0x00,
+    let _ROM: [u8; 12] = [
+        0x0F, 0x00, 0x00, 0x0C,
+        0x0D, 0x0C, 0x00, 0x00,
         0xFF, 0x00, 0x00, 0x00,
-        0x48, 0x69, 0x0A
     ];
     let mut one_plus_two = File::create("opt.bin").unwrap();
     one_plus_two.write(&_ROM).unwrap();

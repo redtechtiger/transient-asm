@@ -9,6 +9,7 @@
 //! - 0x04: MUL source1 and source2 and store result in destination
 //! - 0x05: DIV source1 by source2 and store result in destination (truncated)
 //! - 0x06: DIV source1 by source2 and store result in destination (rounded)
+//! - 0x07: REM divides source1 by source2 and stores the remainder in destination
 //! - 0x07: CGT compare if source1 is greater than source2, and if so, store 1 in destination
 //! - 0x08: CLT compare if source1 is less than source2, and if so, store 1 in destination
 //! - 0x09: JMP stops current execution and jumps to code in source1
@@ -30,14 +31,15 @@ const SUB: u8 = 0x03;
 const MUL: u8 = 0x04;
 const DIV_T: u8 = 0x05;
 const DIV_R: u8 = 0x06;
-const CGT: u8 = 0x07;
-const CLT: u8 = 0x08;
-const JMP: u8 = 0x09;
-const JIE: u8 = 0x0A;
-const JNE: u8 = 0x0B;
-const PUT_I: u8 = 0x0C;
-const PUT_C: u8 = 0x0D;
-const XSA: u8 = 0x0E;
+const REM: u8 = 0x07;
+const CGT: u8 = 0x08;
+const CLT: u8 = 0x09;
+const JMP: u8 = 0x0A;
+const JIE: u8 = 0x0B;
+const JNE: u8 = 0x0C;
+const PUT_I: u8 = 0x0D;
+const PUT_C: u8 = 0x0E;
+const XSA: u8 = 0x0F;
 const HLT: u8 = 0xFF;
 
 use std::env::args;
@@ -126,6 +128,10 @@ impl<const TRANSIENT_MEM_MAX: usize> TransientState<TRANSIENT_MEM_MAX> {
                 self.memory[destination] = (self.memory[source1] as f64 / self.memory[source2] as f64) as u8;
                 self.program_counter + 4
             }
+            REM => {
+                self.memory[destination] = (self.memory[source1]) % self.memory[source2];
+                self.program_counter + 4
+            }
             CGT => {
                 self.memory[destination] = (self.memory[source1] > self.memory[source2]) as u8;
                 self.program_counter + 4
@@ -183,9 +189,9 @@ fn main() {
     
     // DEBUG: Write a 1+2 program
     let _ROM: [u8; 19] = [
-        0x0D, 0x10, 0x00, 0x00,
-        0x0D, 0x11, 0x00, 0x00,
-        0x0D, 0x12, 0x00, 0x00,
+        0x0E, 0x10, 0x00, 0x00,
+        0x0E, 0x11, 0x00, 0x00,
+        0x0E, 0x12, 0x00, 0x00,
         0xFF, 0x00, 0x00, 0x00,
         0x48, 0x69, 0x0A
     ];
@@ -228,5 +234,6 @@ fn main() {
 
     // Begin executing
     transient_state.run(0);
+
     println!("Info: End of program reached");
 }

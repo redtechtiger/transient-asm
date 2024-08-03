@@ -17,7 +17,7 @@
 //! - 0x0C: JNE stops current execution and jumps to code in source1 ONLY IF source2 is zero
 //! - 0x0D: PUT prints data at source1 to the screen (int)
 //! - 0x0E: PUT prints data at source1 to the screen (char)
-//! - 0x0F: XSA gets the length of code in ROM and stores in destination
+//! - 0x0F: IMZ gets the image size that was loaded to ROM and stores it in destination
 //! - 0xFF: HLT halts execution and stops processor
 //!
 //! # Transient addresses
@@ -39,7 +39,7 @@ const JIE: u8 = 0x0B;
 const JNE: u8 = 0x0C;
 const PUT_I: u8 = 0x0D;
 const PUT_C: u8 = 0x0E;
-const XSA: u8 = 0x0F;
+const IMZ: u8 = 0x0F;
 const HLT: u8 = 0xFF;
 
 use std::env::args;
@@ -186,7 +186,7 @@ impl<const TRANSIENT_MEM_MAX: usize> TransientState<TRANSIENT_MEM_MAX> {
                 print!("{}", char::from(self.memory[source1]));
                 self.program_counter + 4
             }
-            XSA => {
+            IMZ => {
                 self.memory[destination] = self.image_length as u8;
                 self.program_counter + 4
             }

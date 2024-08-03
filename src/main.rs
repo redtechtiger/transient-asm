@@ -46,7 +46,7 @@ use std::env::args;
 use std::fs::File;
 use std::io::{Read, Write};
 
-const TRANSIENT_MEM_MAX: usize = 32;
+const TRANSIENT_MEM_MAX: usize = 256;
 
 #[derive(PartialEq)]
 pub enum TransientMode {
@@ -76,7 +76,7 @@ impl<const TRANSIENT_MEM_MAX: usize> TransientState<TRANSIENT_MEM_MAX> {
     pub fn load_text(&mut self, offset: usize, text: &[u8]) {
         assert!(
             self.memory.len() >= text.len(),
-            "text section doesn't fit into transient memory"
+            "Halt: Text section doesn't fit into transient memory"
         );
         self.memory[offset..text.len() + offset].copy_from_slice(text);
     }
@@ -93,16 +93,32 @@ impl<const TRANSIENT_MEM_MAX: usize> TransientState<TRANSIENT_MEM_MAX> {
     pub fn resolve_instruction(&self, base: usize) -> [u8; 4]{
         assert!(
             self.memory.len() > base+3,
-            "attempted instruction resolution beyond memory space"
+            "Halt: Attempted instruction resolution beyond memory space"
         );
         self.memory[base..][..4].try_into().unwrap()
     }
     /// Executes an instruction and returns the next program counter
     pub fn execute_instruction(&mut self, instruction: [u8; 4]) -> usize {
+        // Decodes instruction
         let opcode = instruction[0];
         let source1 = instruction[1] as usize;
         let source2 = instruction[2] as usize;
         let destination = instruction[3] as usize;
+
+        // Validates memory pointers
+        assert!(
+            self.memory.len() > source1,
+            "Halt: Attempt to access memory beyond memory space (source1)"
+        );
+        assert!(
+            self.memory.len() > source2,
+            "Halt: Attempt to access memory beyond memory space (source2)"
+        );
+        assert!(
+            self.memory.len() > destination,
+            "Halt: Attempt to access memory beyond memory space (destination)"
+        );
+
         match opcode {
             MOV => { 
                 self.memory[destination] = self.memory[source1];

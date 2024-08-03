@@ -56,7 +56,7 @@ pub enum TransientMode {
 
 pub struct TransientState<const TRANSIENT_MEM_MAX: usize> {
     pub memory: [u8; TRANSIENT_MEM_MAX],
-    pub execution_length: usize, // Length of executable code in memory
+    pub image_length: usize, // Length of executable code in memory
     pub program_counter: usize,
     pub mode: TransientMode,
 }
@@ -67,18 +67,19 @@ impl<const TRANSIENT_MEM_MAX: usize> TransientState<TRANSIENT_MEM_MAX> {
     pub fn new() -> Self {
         TransientState {
             memory: [0u8; TRANSIENT_MEM_MAX],
-            execution_length: 0,
+            image_length: 0,
             program_counter: 0,
             mode: TransientMode::HALTED,
         }
     }
     /// Loads a transient memory image into a state/processor at a specified offset.
-    pub fn load_text(&mut self, offset: usize, text: &[u8]) {
+    pub fn load_image(&mut self, offset: usize, image: &[u8]) {
         assert!(
-            self.memory.len() >= text.len(),
+            self.memory.len() >= image.len(),
             "Halt: Text section doesn't fit into transient memory"
         );
-        self.memory[offset..text.len() + offset].copy_from_slice(text);
+        self.memory[offset..image.len() + offset].copy_from_slice(image);
+        self.image_length = image.len();
     }
     /// Starts a loop that runs the processor until halted
     pub fn run(&mut self, start: usize) {
@@ -186,7 +187,7 @@ impl<const TRANSIENT_MEM_MAX: usize> TransientState<TRANSIENT_MEM_MAX> {
                 self.program_counter + 4
             }
             XSA => {
-                self.memory[destination] = self.execution_length as u8;
+                self.memory[destination] = self.image_length as u8;
                 self.program_counter + 4
             }
             HLT => {
@@ -243,7 +244,7 @@ fn main() {
     println!("Info: Transient processor initialized");
 
     // Copy over image at offset 0 (at the start)
-    transient_state.load_text(0, &transient_image);
+    transient_state.load_image(0, &transient_image);
     println!("Info: Transient image loaded");
 
     // Begin executing

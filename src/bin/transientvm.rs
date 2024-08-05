@@ -93,9 +93,9 @@ impl<const TRANSIENT_MEM_MAX: usize> TransientState<TRANSIENT_MEM_MAX> {
         }
     }
     /// Fetches an instruction at the given address (mind the alignment!)
-    pub fn resolve_instruction(&self, base: usize) -> [u8; 4]{
+    pub fn resolve_instruction(&self, base: usize) -> [u8; 4] {
         assert!(
-            self.memory.len() > base+3,
+            self.memory.len() > base + 3,
             "Halt: Attempted instruction resolution beyond memory space"
         );
         self.memory[base..][..4].try_into().unwrap()
@@ -123,7 +123,7 @@ impl<const TRANSIENT_MEM_MAX: usize> TransientState<TRANSIENT_MEM_MAX> {
         );
 
         match opcode {
-            MOV => { 
+            MOV => {
                 self.memory[destination] = self.memory[source1];
                 self.program_counter + 4
             }
@@ -144,7 +144,8 @@ impl<const TRANSIENT_MEM_MAX: usize> TransientState<TRANSIENT_MEM_MAX> {
                 self.program_counter + 4
             }
             DIV_R => {
-                self.memory[destination] = (self.memory[source1] as f64 / self.memory[source2] as f64) as u8;
+                self.memory[destination] =
+                    (self.memory[source1] as f64 / self.memory[source2] as f64) as u8;
                 self.program_counter + 4
             }
             REM => {
@@ -159,9 +160,7 @@ impl<const TRANSIENT_MEM_MAX: usize> TransientState<TRANSIENT_MEM_MAX> {
                 self.memory[destination] = (self.memory[source1] < self.memory[source2]) as u8;
                 self.program_counter + 4
             }
-            JMP => {
-                source1
-            }
+            JMP => source1,
             JIE => {
                 if self.memory[source2] == 0 {
                     // Zero
@@ -201,14 +200,16 @@ impl<const TRANSIENT_MEM_MAX: usize> TransientState<TRANSIENT_MEM_MAX> {
                 self.program_counter
             }
             _ => {
-                panic!("Halt: Unsupported opcode! Instruction: 0x{:0>2x}{:0>2x}{:0>2x}{:0>2x}", opcode, source1, source2, destination);
+                panic!(
+                    "Halt: Unsupported opcode! Instruction: 0x{:0>2x}{:0>2x}{:0>2x}{:0>2x}",
+                    opcode, source1, source2, destination
+                );
             }
         }
     }
 }
 
 fn main() {
-
     // Verify input arguments
     let args: Vec<String> = args().collect();
     if args.len() != 2 {

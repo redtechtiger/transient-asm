@@ -216,24 +216,21 @@ fn main() {
     // Verify input arguments
     let args: Vec<String> = args().collect();
     if args.len() != 2 {
-        println!("Stop: Incorrect amount of arguments!");
-        return;
+        panic!("Stop: Incorrect amount of arguments!");
     }
 
     // Open file for reading
     let mut input_file = match File::open(&args[1]) {
         Ok(x) => x,
         Err(_) => {
-            println!("Stop: Failed to open file");
-            return;
+            panic!("Stop: Failed to open file");
         }
     };
 
     // Read bytes into buffer
     let mut transient_image: Vec<u8> = vec![];
     if let Err(_) = input_file.read_to_end(&mut transient_image) {
-        println!("Stop: Failed to read file contents");
-        return;
+        panic!("Stop: Failed to read file contents");
     }
     println!("Info: File read");
 

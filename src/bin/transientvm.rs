@@ -44,7 +44,7 @@ const HLT: u8 = 0xFF;
 
 use std::env::args;
 use std::fs::File;
-use std::io::{Read, Write};
+use std::io::Read;
 
 const TRANSIENT_MEM_MAX: usize = 256;
 

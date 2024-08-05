@@ -18,6 +18,7 @@
 //! - 0x0D: PUT prints data at source1 to the screen (int)
 //! - 0x0E: PUT prints data at source1 to the screen (char)
 //! - 0x0F: IMZ gets the image size that was loaded to ROM and stores it in destination
+//! - 0x10: EQU compare if source1 and source2 are equal, and if so, store 1 in destination
 //! - 0xFF: HLT halts execution and stops processor
 //!
 //! # Transient addresses
@@ -40,6 +41,7 @@ const JNE: u8 = 0x0C;
 const PUT_I: u8 = 0x0D;
 const PUT_C: u8 = 0x0E;
 const IMZ: u8 = 0x0F;
+const EQU: u8 = 0x10;
 const HLT: u8 = 0xFF;
 
 use std::env::args;
@@ -188,6 +190,10 @@ impl<const TRANSIENT_MEM_MAX: usize> TransientState<TRANSIENT_MEM_MAX> {
             }
             IMZ => {
                 self.memory[destination] = self.image_length as u8;
+                self.program_counter + 4
+            }
+            EQU => {
+                self.memory[destination] = (source1 == source2) as u8;
                 self.program_counter + 4
             }
             HLT => {

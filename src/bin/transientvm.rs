@@ -160,7 +160,10 @@ impl<const TRANSIENT_MEM_MAX: usize> TransientState<TRANSIENT_MEM_MAX> {
                 self.memory[destination] = (self.memory[source1] < self.memory[source2]) as u8;
                 self.program_counter + 4
             }
-            JMP => source1,
+            #[rustfmt::skip]
+            JMP => {
+                source1
+            },
             JIE => {
                 if self.memory[source2] == 0 {
                     // Zero

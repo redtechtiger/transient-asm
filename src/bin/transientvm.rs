@@ -219,8 +219,8 @@ impl<const TRANSIENT_MEM_MAX: usize> TransientState<TRANSIENT_MEM_MAX> {
             }
             _ => {
                 panic!(
-                    "Halt: Unsupported opcode! Instruction: 0x{:0>2x}{:0>4x}{:0>4x}{:0>4x}",
-                    opcode, source1_address, source2_address, destination_address
+                    "Halt: Unsupported opcode! Instruction: 0x{:0>2x}{:0>4x}{:0>4x}{:0>4x}\n-> Program Counter: {}",
+                    opcode, source1_address, source2_address, destination_address, self.program_counter
                 );
             }
         }

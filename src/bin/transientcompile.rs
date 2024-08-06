@@ -148,7 +148,7 @@ fn preprocess_source_code(source_code: Vec<String>) -> (Vec<Operation>, HashMap<
         let line_tokens: Vec<String> = line.split(" ").map(|x| {x.to_owned()}).collect();
         // Extract 'add' from 'add64'
         let opcode: String = line_tokens[0].chars().filter(|x|{x.is_alphabetic()}).collect::<String>();
-        let size: usize = usize::from_str_radix(&line_tokens[0].chars().filter(|x|{x.is_numeric()}).collect::<String>(), 10).expect("Failed to parse size");
+        let size: usize = usize::from_str_radix(&line_tokens[0].chars().filter(|x|{x.is_numeric()}).collect::<String>(), 10).expect("Failed to parse size") / 8;
         let args: Vec<usize> = line_tokens[1..].iter().map(|x|{
             if x.starts_with("#") {
                 jump_addresses.get(&x[1..]).expect("Jump address resolution failed").clone()
@@ -216,7 +216,6 @@ fn preprocess_source_code(source_code: Vec<String>) -> (Vec<Operation>, HashMap<
         })
     }
 
-    dbg!(&abstract_syntax_tree, &memory_map);
     (abstract_syntax_tree, memory_map)
 }
 
@@ -294,9 +293,18 @@ fn codegen(abstract_syntax_tree: Vec<Operation>, memory_map: HashMap<String, (us
         }
     }
 
+    // Calculate amount of space that variables take
+    let mut var_size = 0;
+    for (_address, _value, size) in memory_map.values() {
+        var_size += size;
+    }
+
+    // Allocate size for new vars
+    image.resize(image.len()+var_size, 0);
+
     // Write variables to image
     for (address, value, size) in memory_map.values() {
-        image.extend_from_slice(value.to_be_bytes()[value.to_be_bytes().len()-size..].try_into().expect("Failed to write variable to image"))
+        image[*address..][..*size].copy_from_slice(value.to_be_bytes()[value.to_be_bytes().len()-size..].try_into().expect("Failed to write variable to image"))
     }
 
     image
@@ -328,8 +336,17 @@ fn main() {
 
     // Preprocess, resolve memory addresses, and generate abstract syntax tree
     let (abstract_syntax_tree, memory_map) = preprocess_source_code(source_code);
+    println!("Info: Preprocessing complete");
 
     // Codegen
     let executable = codegen(abstract_syntax_tree, memory_map);
-    dbg!(executable);
+    println!("Info: Codegen complete");
+
+    // Write output file
+    let mut output_file = File::create("out.bin").expect("Failed to create output file");
+    output_file.write(&executable).expect("Failed to write to output file");
+    println!("Info: File generated");
+    
+    // Done!
+    println!("Info: === Compilation Succeeded ===");
 }

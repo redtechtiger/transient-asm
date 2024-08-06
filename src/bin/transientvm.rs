@@ -113,9 +113,9 @@ impl<const TRANSIENT_MEM_MAX: usize> TransientState<TRANSIENT_MEM_MAX> {
         // Decodes instruction
         let opcode = instruction[0];
         let size = instruction[1] as usize;
-        let source1_address = i16::from_be_bytes([instruction[2], instruction[3]]) as usize;
-        let source2_address = i16::from_be_bytes([instruction[4], instruction[5]]) as usize; 
-        let destination_address = i16::from_be_bytes([instruction[6], instruction[7]]) as usize;
+        let source1_address = u16::from_be_bytes([instruction[2], instruction[3]]) as usize;
+        let source2_address = u16::from_be_bytes([instruction[4], instruction[5]]) as usize; 
+        let destination_address = u16::from_be_bytes([instruction[6], instruction[7]]) as usize;
         
         // Validates memory pointers
         assert!(

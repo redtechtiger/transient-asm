@@ -1,0 +1,34 @@
+// Initialize variables
+set64 $current_num 3
+set64 $divisor 2
+set64 $remainder 0
+set64 $is_done_checking 0
+set64 $one 1
+set64 $two 2
+
+set64 $newline 10
+
+#outer_loop
+// Main infinite loop
+
+add64 $current_num $one $current_num
+mov64 $current_num $divisor
+divt64 $divisor $two $divisor
+
+#inner_loop
+rem64 $current_num $divisor $remainder
+jne64 #outer_loop $remainder
+equ64 $divisor $two $is_done_checking
+jie64 #division_done $is_done_checking
+sub64 $divisor $one $divisor
+jmp64 #inner_loop
+
+// Stop inner loop
+
+#division_done
+
+puti64 $current_num
+putc64 $newline
+jmp64 #outer_loop
+
+// Stop outer loop

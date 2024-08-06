@@ -53,7 +53,7 @@ enum Operation {
 fn preprocess_source_code(source_code: Vec<String>) -> Vec<Operation> {
     // Pass 1
     // Count IR LoC
-    let mut lines_of_ir = 0u64;
+    let mut lines_of_ir = 0usize;
     for line in &source_code {
         // Check if it's actual IR
         if !line.is_empty() && !line.starts_with("#") && !line.starts_with("//") && !line.starts_with("set") {
@@ -64,24 +64,31 @@ fn preprocess_source_code(source_code: Vec<String>) -> Vec<Operation> {
 
     // Pass 2
     // Build hashmap of variables
-    let memory_map: HashMap<String, (usize, u64)> = HashMap::new();
+    let mut memory_map: HashMap<String, (usize, u64)> = HashMap::new();
+    let mut memory_offset = 0usize;
     for line in &source_code {
+        // Skip if not declaration
         if !line.starts_with("set") {
             continue;
         }
+        // set{bits} $variable value
         let line_tokens: Vec<String> = line.split(" ").map(|x| {x.to_owned()}).collect();
         assert!(
-            line_tokens.len() != 3,
+            line_tokens.len() == 3,
             "Invalid set syntax"
         );
         assert!(
             line_tokens[1].starts_with("$"),
             "Invalid variable"
         );
-        
-
+        memory_map.insert(
+            line_tokens[1][1..].to_string(),
+            (ir_size_bytes + memory_offset, u64::from_str_radix(&line_tokens[2], 10).expect("Failed to parse value"))
+        );
+        memory_offset += usize::from_str_radix(&line_tokens[0][3..], 10).expect("Failed to parse size") / 8;
     }
 
+    dbg!(memory_map);
 
     todo!();
 }

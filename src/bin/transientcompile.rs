@@ -28,7 +28,7 @@ use std::io::{Read, Write};
 use std::fs::File;
 use std::collections::HashMap;
 
-#[derive(Debug)]
+#[derive(Debug, Hash, Eq, PartialEq)]
 enum Operation {
     Mov(usize, usize, usize),
     Add(usize, usize, usize, usize),
@@ -49,9 +49,29 @@ enum Operation {
     Hlt(),
 }
 
+fn resolve_operation_opcode(operation: &Operation) -> u8 {
+    match operation {
+        Operation::Mov(..) => 0x01,
+        Operation::Add(..) => 0x02,
+        Operation::Sub(..) => 0x03,
+        Operation::Mul(..) => 0x04,
+        Operation::DivT(..) => 0x05,
+        Operation::DivR(..) => 0x06,
+        Operation::Rem(..) => 0x07,
+        Operation::Cgt(..) => 0x08,
+        Operation::Clt(..) => 0x09,
+        Operation::Jmp(..) => 0x0A,
+        Operation::Jie(..) => 0x0B,
+        Operation::Jne(..) => 0x0C,
+        Operation::PutI(..) => 0x0D,
+        Operation::PutC(..) => 0x0E,
+        Operation::Imz(..) => 0x0F,
+        Operation::Equ(..) => 0x10,
+        Operation::Hlt(..) => 0xFF,
+    }
+}
 
-
-fn preprocess_source_code(source_code: Vec<String>) -> (Vec<Operation>, HashMap<String, (usize, u64)>) {
+fn preprocess_source_code(source_code: Vec<String>) -> (Vec<Operation>, HashMap<String, (usize, u64, usize)>) {
     let mut source_code = source_code;
 
     // Pass 1
@@ -67,7 +87,8 @@ fn preprocess_source_code(source_code: Vec<String>) -> (Vec<Operation>, HashMap<
 
     // Pass 2
     // Build hashmap of variables
-    let mut memory_map: HashMap<String, (usize, u64)> = HashMap::new();
+    let mut memory_map: HashMap<String, (usize, u64, usize)> = HashMap::new(); // Address, value,
+                                                                               // size
     let mut memory_offset = 0usize;
     for line in &source_code {
         // Skip if not declaration
@@ -84,11 +105,13 @@ fn preprocess_source_code(source_code: Vec<String>) -> (Vec<Operation>, HashMap<
             line_tokens[1].starts_with("$"),
             "Invalid variable"
         );
+        let size = usize::from_str_radix(&line_tokens[0][3..], 10).expect("Failed to parse size") / 8;
+
         memory_map.insert(
             line_tokens[1][1..].to_string(),
-            (ir_size_bytes + memory_offset, u64::from_str_radix(&line_tokens[2], 10).expect("Failed to parse value"))
+            (ir_size_bytes + memory_offset, u64::from_str_radix(&line_tokens[2], 10).expect("Failed to parse value"), size),
         );
-        memory_offset += usize::from_str_radix(&line_tokens[0][3..], 10).expect("Failed to parse size") / 8;
+        memory_offset += size
     }
 
     // Pass 3
@@ -197,14 +220,84 @@ fn preprocess_source_code(source_code: Vec<String>) -> (Vec<Operation>, HashMap<
     (abstract_syntax_tree, memory_map)
 }
 
-fn codegen() -> Vec<u8> {
+fn gen_binary_instruction(opcode: u8, size: usize, src1: usize, src2: usize, dest: usize) -> [u8; 8] {
+    [
+        opcode,
+        size as u8,
+        (src1 as u16).to_be_bytes()[0],
+        (src1 as u16).to_be_bytes()[1],
+        (src2 as u16).to_be_bytes()[0],
+        (src2 as u16).to_be_bytes()[1],
+        (dest as u16).to_be_bytes()[0],
+        (dest as u16).to_be_bytes()[1],
+    ]
+}
+
+fn codegen(abstract_syntax_tree: Vec<Operation>, memory_map: HashMap<String, (usize, u64, usize)>) -> Vec<u8> {
     let mut image: Vec<u8> = vec![];
     
     // Write instructions to image
-
+    for (index, instruction) in abstract_syntax_tree.iter().enumerate() {
+        let opcode = resolve_operation_opcode(&instruction);
+        match *instruction {
+            Operation::Mov(size, src1, dest) => {
+                image.extend_from_slice(&gen_binary_instruction(opcode, size, src1, 0x00, dest));
+            }
+            Operation::Add(size, src1, src2, dest) => {
+                image.extend_from_slice(&gen_binary_instruction(opcode, size, src1, src2, dest));
+            }
+            Operation::Sub(size, src1, src2, dest) => {
+                image.extend_from_slice(&gen_binary_instruction(opcode, size, src1, src2, dest));
+            }
+            Operation::Mul(size, src1, src2, dest) => {
+                image.extend_from_slice(&gen_binary_instruction(opcode, size, src1, src2, dest));
+            }
+            Operation::DivT(size, src1, src2, dest) => {
+                image.extend_from_slice(&gen_binary_instruction(opcode, size, src1, src2, dest));
+            }
+            Operation::DivR(size, src1, src2, dest) => {
+                image.extend_from_slice(&gen_binary_instruction(opcode, size, src1, src2, dest));
+            }
+            Operation::Rem(size, src1, src2, dest) => {
+                image.extend_from_slice(&gen_binary_instruction(opcode, size, src1, src2, dest));
+            }
+            Operation::Cgt(size, src1, src2, dest) => {
+                image.extend_from_slice(&gen_binary_instruction(opcode, size, src1, src2, dest));
+            }
+            Operation::Clt(size, src1, src2, dest) => {
+                image.extend_from_slice(&gen_binary_instruction(opcode, size, src1, src2, dest));
+            }
+            Operation::Jmp(src1) => {
+                image.extend_from_slice(&gen_binary_instruction(opcode, 0x00, src1, 0x00, 0x00));
+            }
+            Operation::Jie(size, src1, src2) => {
+                image.extend_from_slice(&gen_binary_instruction(opcode, size, src1, src2, 0x00));
+            }
+            Operation::Jne(size, src1, src2) => {
+                image.extend_from_slice(&gen_binary_instruction(opcode, size, src1, src2, 0x00));
+            }
+            Operation::PutI(size, src1) => {
+                image.extend_from_slice(&gen_binary_instruction(opcode, size, src1, 0x00, 0x00));
+            }
+            Operation::PutC(size, src1) => {
+                image.extend_from_slice(&gen_binary_instruction(opcode, size, src1, 0x00, 0x00));
+            }
+            Operation::Imz(size, dest) => {
+                image.extend_from_slice(&gen_binary_instruction(opcode, size, 0x00, 0x00, dest));
+            }
+            Operation::Equ(size, src1, src2, dest) => {
+                image.extend_from_slice(&gen_binary_instruction(opcode, size, src1, src2, dest));
+            }
+            Operation::Hlt() => {
+                image.extend_from_slice(&gen_binary_instruction(opcode, 0x00, 0x00, 0x00, 0x00));
+            }
+        }
+    }
 
     // Write variables to image
-
+    for (address, value, size) in memory_map.values() {
+        image.extend_from_slice(value.to_be_bytes()[value.to_be_bytes().len()-size..].try_into().expect("Failed to write variable to image"))
+    }
 
     image
 }
@@ -235,4 +328,8 @@ fn main() {
 
     // Preprocess, resolve memory addresses, and generate abstract syntax tree
     let (abstract_syntax_tree, memory_map) = preprocess_source_code(source_code);
+
+    // Codegen
+    let executable = codegen(abstract_syntax_tree, memory_map);
+    dbg!(executable);
 }

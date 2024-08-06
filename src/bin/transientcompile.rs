@@ -28,6 +28,7 @@ use std::io::{Read, Write};
 use std::fs::File;
 use std::collections::HashMap;
 
+#[derive(Debug)]
 enum Operation {
     Mov(usize, usize, usize),
     Add(usize, usize, usize, usize),
@@ -44,13 +45,13 @@ enum Operation {
     PutI(usize, usize),
     PutC(usize, usize),
     Imz(usize, usize),
-    Equ(usize, usize, usize, usize,),
+    Equ(usize, usize, usize, usize),
     Hlt(),
 }
 
 
 
-fn preprocess_source_code(source_code: Vec<String>) -> Vec<Operation> {
+fn preprocess_source_code(source_code: Vec<String>) -> (Vec<Operation>, HashMap<String, (usize, u64)>) {
     let mut source_code = source_code;
 
     // Pass 1
@@ -102,7 +103,7 @@ fn preprocess_source_code(source_code: Vec<String>) -> Vec<Operation> {
     loop {
         let mut clean = true;
         let mut index_to_remove: usize = 0;
-        for (index, line) in source_code.iter().enumerate() {
+        for     (index, line) in source_code.iter().enumerate() {
             if line.starts_with("#") {
                 clean = false;
                 jump_addresses.insert(line[1..].to_owned(), index*8);
@@ -117,9 +118,95 @@ fn preprocess_source_code(source_code: Vec<String>) -> Vec<Operation> {
         }
     }
 
-    dbg!(jump_addresses);
+    // Pass 5
+    // Build abstract syntax tree
+    let mut abstract_syntax_tree: Vec<Operation> = Vec::new();
+    for line in source_code {
+        let line_tokens: Vec<String> = line.split(" ").map(|x| {x.to_owned()}).collect();
+        // Extract 'add' from 'add64'
+        let opcode: String = line_tokens[0].chars().filter(|x|{x.is_alphabetic()}).collect::<String>();
+        let size: usize = usize::from_str_radix(&line_tokens[0].chars().filter(|x|{x.is_numeric()}).collect::<String>(), 10).expect("Failed to parse size");
+        let args: Vec<usize> = line_tokens[1..].iter().map(|x|{
+            if x.starts_with("#") {
+                jump_addresses.get(&x[1..]).expect("Jump address resolution failed").clone()
+            } else if x.starts_with("$") {
+                memory_map.get(&x[1..]).expect("Memory resolution failed").0
+            } else {
+                panic!("Argument parsing fail");
+            }
+        }).collect();
+        abstract_syntax_tree.push(match &opcode[..] {
+            "mov" => {
+                Operation::Mov(size, args[0], args[1])
+            }
+            "add" => {
+                Operation::Add(size, args[0], args[1], args[2])
+            },
+            "sub" => {
+                Operation::Sub(size, args[0], args[1], args[2])
+            }
+            "mul" => {
+                Operation::Mul(size, args[0], args[1], args[2])
+            }
+            "divt" => {
+                Operation::DivT(size, args[0], args[1], args[2])
+            }
+            "divr" => {
+                Operation::DivR(size, args[0], args[1], args[2])
+            }
+            "rem" => {
+                Operation::Rem(size, args[0], args[1], args[2])
+            }
+            "cgt" => {
+                Operation::Cgt(size, args[0], args[1], args[2])
+            }
+            "clt" => {
+                Operation::Clt(size, args[0], args[1], args[2])
+            }
+            "jmp" => {
+                Operation::Jmp(args[0])
+            }
+            "jie" => {
+                Operation::Jie(size, args[0], args[1])
+            }
+            "jne" => {
+                Operation::Jne(size, args[0], args[1])
+            }
+            "puti" => {
+                Operation::PutI(size, args[0])
+            }
+            "putc" => {
+                Operation::PutC(size, args[0])
+            }
+            "imz" => {
+                Operation::Imz(size, args[0])
+            }
+            "equ" => {
+                Operation::Equ(size, args[0], args[1], args[2])
+            }
+            "hlt" => {
+                Operation::Hlt()
+            }
+            _ => {
+                panic!("Unknown operation");
+            }
+        })
+    }
 
-    todo!();
+    dbg!(&abstract_syntax_tree, &memory_map);
+    (abstract_syntax_tree, memory_map)
+}
+
+fn codegen() -> Vec<u8> {
+    let mut image: Vec<u8> = vec![];
+    
+    // Write instructions to image
+
+
+    // Write variables to image
+
+
+    image
 }
     
 fn main() {
@@ -143,9 +230,9 @@ fn main() {
     if let Err(_) = input_file.read_to_string(&mut source_code) {
         panic!("Stop: Failed to read file contents");
     }
+    let source_code: Vec<String> = source_code.split("\n").map(|x| {x.to_owned()}).collect();
     println!("Info: File read");
 
-    let source_code: Vec<String> = source_code.split("\n").map(|x| {x.to_owned()}).collect();
-
-    let abstract_syntax_tree = preprocess_source_code(source_code);
+    // Preprocess, resolve memory addresses, and generate abstract syntax tree
+    let (abstract_syntax_tree, memory_map) = preprocess_source_code(source_code);
 }

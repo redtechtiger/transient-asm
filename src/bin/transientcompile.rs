@@ -107,6 +107,7 @@ fn preprocess_source_code(source_code: Vec<String>) -> Vec<Operation> {
                 clean = false;
                 jump_addresses.insert(line[1..].to_owned(), index*8);
                 index_to_remove = index;
+                break;
             }
         }
         if clean {
@@ -115,6 +116,8 @@ fn preprocess_source_code(source_code: Vec<String>) -> Vec<Operation> {
             source_code.remove(index_to_remove);
         }
     }
+
+    dbg!(jump_addresses);
 
     todo!();
 }

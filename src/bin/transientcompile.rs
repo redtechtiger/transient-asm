@@ -51,6 +51,8 @@ enum Operation {
 
 
 fn preprocess_source_code(source_code: Vec<String>) -> Vec<Operation> {
+    let mut source_code = source_code;
+
     // Pass 1
     // Count IR LoC
     let mut lines_of_ir = 0usize;
@@ -88,7 +90,31 @@ fn preprocess_source_code(source_code: Vec<String>) -> Vec<Operation> {
         memory_offset += usize::from_str_radix(&line_tokens[0][3..], 10).expect("Failed to parse size") / 8;
     }
 
-    dbg!(memory_map);
+    // Pass 3
+    // Erase comments, sets, and empty lines
+    source_code.retain(|line| {
+        !line.is_empty() && !line.starts_with("//") && !line.starts_with("set")
+    });
+
+    // Pass 4
+    // Repeatedly scan and generate tag addresses
+    let mut jump_addresses: HashMap<String, usize> = HashMap::new();
+    loop {
+        let mut clean = true;
+        let mut index_to_remove: usize = 0;
+        for (index, line) in source_code.iter().enumerate() {
+            if line.starts_with("#") {
+                clean = false;
+                jump_addresses.insert(line[1..].to_owned(), index*8);
+                index_to_remove = index;
+            }
+        }
+        if clean {
+            break;
+        } else {
+            source_code.remove(index_to_remove);
+        }
+    }
 
     todo!();
 }

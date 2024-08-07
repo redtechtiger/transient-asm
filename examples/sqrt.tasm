@@ -1,0 +1,45 @@
+// Initialize variables
+set64 $input 63
+set64 $initial_estimate 0
+set64 $i1 0
+set64 $i1_halved 0
+set64 $i2 0
+set64 $i2_halved 0
+set64 $i3 0
+set64 $i3_halved 0
+set64 $i4 0
+set64 $i4_halved 0
+set64 $i5 0
+set64 $i5_halved 0
+
+set64 $två 2
+set64 $newl 10
+
+// Set up initial estimate
+divt64 $input $två $initial_estimate
+
+// Iterations!!
+divt64 $input $initial_estimate $i1_halved
+add64 $initial_estimate $i1_halved $i1_halved
+divt64 $i1_halved $två $i1
+
+divt64 $input $i1 $i2_halved
+add64 $i1 $i2_halved $i2_halved
+divt64 $i2_halved $två $i2
+
+divt64 $input $i2 $i3_halved
+add64 $i2 $i3_halved $i3_halved
+divt64 $i3_halved $två $i3
+
+divt64 $input $i3 $i4_halved
+add64 $i3 $i4_halved $i4_halved
+divt64 $i4_halved $två $i4
+
+divt64 $input $i3 $i5_halved
+add64 $i3 $i5_halved $i5_halved
+divt64 $i5_halved $två $i5
+
+// Print output
+puti64 $i5
+putc64 $newl
+hlt64

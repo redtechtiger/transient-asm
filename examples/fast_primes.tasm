@@ -1,0 +1,72 @@
+// Initialize variables
+set64 $current_num 9
+set64 $divisor 2
+set64 $remainder 0
+set64 $is_done_checking 0
+set64 $one 1
+set64 $two 2
+
+set64 $newline 10
+
+set64 $initial_estimate 0
+set64 $i1 0
+set64 $i1_halved 0
+set64 $i2 0
+set64 $i2_halved 0
+set64 $i3 0
+set64 $i3_halved 0
+set64 $i4 0
+set64 $i4_halved 0
+set64 $i5 0
+set64 $i5_halved 0
+
+set64 $två 2
+set64 $newl 10
+
+#outer_loop
+// Main infinite loop
+
+// Set up initial estimate
+divt64 $current_num $två $initial_estimate
+
+// Iterations!!
+divt64 $current_num $initial_estimate $i1_halved
+add64 $initial_estimate $i1_halved $i1_halved
+divt64 $i1_halved $två $i1
+
+divt64 $current_num $i1 $i2_halved
+add64 $i1 $i2_halved $i2_halved
+divt64 $i2_halved $två $i2
+
+divt64 $current_num $i2 $i3_halved
+add64 $i2 $i3_halved $i3_halved
+divt64 $i3_halved $två $i3
+
+divt64 $current_num $i3 $i4_halved
+add64 $i3 $i4_halved $i4_halved
+divt64 $i4_halved $två $i4
+
+divt64 $current_num $i3 $i5_halved
+add64 $i3 $i5_halved $i5_halved
+divt64 $i5_halved $två $i5
+
+add64 $current_num $two $current_num
+mov64 $i5 $divisor
+
+#inner_loop
+rem64 $current_num $divisor $remainder
+jne64 #outer_loop $remainder
+equ64 $divisor $two $is_done_checking
+jie64 #division_done $is_done_checking
+sub64 $divisor $one $divisor
+jmp64 #inner_loop
+
+// Stop inner loop
+
+#division_done
+
+puti64 $current_num
+putc64 $newline
+jmp64 #outer_loop
+
+// Stop outer loop

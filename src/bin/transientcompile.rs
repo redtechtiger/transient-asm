@@ -27,6 +27,7 @@ use std::env::args;
 use std::io::{Read, Write};
 use std::fs::File;
 use std::collections::HashMap;
+use std::process::exit;
 
 #[derive(Debug, Hash, Eq, PartialEq)]
 enum Operation {
@@ -97,19 +98,24 @@ fn preprocess_source_code(source_code: Vec<String>) -> (Vec<Operation>, HashMap<
         }
         // set{bits} $variable value
         let line_tokens: Vec<String> = line.split(" ").map(|x| {x.to_owned()}).collect();
-        assert!(
-            line_tokens.len() == 3,
-            "Invalid set syntax"
-        );
-        assert!(
-            line_tokens[1].starts_with("$"),
-            "Invalid variable"
-        );
-        let size = usize::from_str_radix(&line_tokens[0][3..], 10).expect("Failed to parse size") / 8;
+        if line_tokens.len() != 3 {
+            halt_compilation("[E001] Invalid set syntax: Did you remember to initialize the variable?", line);
+        }
+        if !line_tokens[1].starts_with("$") {
+            halt_compilation("[E002] Invalid variable: Did you remember to preface it with a dollar sign? ($)", line);
+        }
+        let size = match usize::from_str_radix(&line_tokens[0][3..], 10) {
+            Ok(x) => x / 8,
+            Err(..) => halt_compilation("[E003] Failed to parse size: Did you remember to specify the size of the operation?", line),
+        };
+        let value = match u64::from_str_radix(&line_tokens[2], 10) {
+            Ok(x) => x,
+            Err(..) => halt_compilation("[E004] Failed to parse value: Only integer values are allowed", line)
+        };
 
         memory_map.insert(
             line_tokens[1][1..].to_string(),
-            (ir_size_bytes + memory_offset, u64::from_str_radix(&line_tokens[2], 10).expect("Failed to parse value"), size),
+            (ir_size_bytes + memory_offset, value, size)
         );
         memory_offset += size
     }
@@ -126,7 +132,7 @@ fn preprocess_source_code(source_code: Vec<String>) -> (Vec<Operation>, HashMap<
     loop {
         let mut clean = true;
         let mut index_to_remove: usize = 0;
-        for     (index, line) in source_code.iter().enumerate() {
+        for (index, line) in source_code.iter().enumerate() {
             if line.starts_with("#") {
                 clean = false;
                 jump_addresses.insert(line[1..].to_owned(), index*8);
@@ -148,70 +154,118 @@ fn preprocess_source_code(source_code: Vec<String>) -> (Vec<Operation>, HashMap<
         let line_tokens: Vec<String> = line.split(" ").map(|x| {x.to_owned()}).collect();
         // Extract 'add' from 'add64'
         let opcode: String = line_tokens[0].chars().filter(|x|{x.is_alphabetic()}).collect::<String>();
-        let size: usize = usize::from_str_radix(&line_tokens[0].chars().filter(|x|{x.is_numeric()}).collect::<String>(), 10).expect("Failed to parse size") / 8;
+        let size: usize = usize::from_str_radix(&line_tokens[0].chars().filter(|x|{x.is_numeric()}).collect::<String>(), 10).unwrap_or_else(|_| { halt_compilation("[E003] Failed to parse size: Did you remember to specify the size of the operation?", &line)}) / 8;
         let args: Vec<usize> = line_tokens[1..].iter().map(|x|{
             if x.starts_with("#") {
-                jump_addresses.get(&x[1..]).expect("Jump address resolution failed").clone()
+                jump_addresses.get(&x[1..]).unwrap_or_else(|| { halt_compilation("[E005] Jump address resolution failed: Try checking your spelling", &line) }).clone()
             } else if x.starts_with("$") {
-                memory_map.get(&x[1..]).expect("Memory resolution failed").0
+                memory_map.get(&x[1..]).unwrap_or_else(|| { halt_compilation("[E006] Memory resolution failed: Try checking your spelling", &line) }).0
             } else {
-                panic!("Argument parsing fail");
+                halt_compilation("[E007] Invalid argument to function: Only variables and tags are allowed as arguments", &line);
             }
         }).collect();
         abstract_syntax_tree.push(match &opcode[..] {
             "mov" => {
+                if args.len() != 2 {
+                    halt_compilation("[E008] This function takes 2 arguments", &line);
+                }
                 Operation::Mov(size, args[0], args[1])
             }
             "add" => {
+                if args.len() != 3 {
+                    halt_compilation("[E008] This function takes 3 arguments", &line);
+                }
                 Operation::Add(size, args[0], args[1], args[2])
             },
             "sub" => {
+                if args.len() != 3 {
+                    halt_compilation("[E008] This function takes 3 arguments", &line);
+                }
                 Operation::Sub(size, args[0], args[1], args[2])
             }
             "mul" => {
+                if args.len() != 3 {
+                    halt_compilation("[E008] This function takes 3 arguments", &line);
+                }
                 Operation::Mul(size, args[0], args[1], args[2])
             }
             "divt" => {
+                if args.len() != 3 {
+                    halt_compilation("[E008] This function takes 3 arguments", &line);
+                }
                 Operation::DivT(size, args[0], args[1], args[2])
             }
             "divr" => {
+                if args.len() != 3 {
+                    halt_compilation("[E008] This function takes 3 arguments", &line);
+                }
                 Operation::DivR(size, args[0], args[1], args[2])
             }
             "rem" => {
+                if args.len() != 3 {
+                    halt_compilation("[E008] This function takes 3 arguments", &line);
+                }
                 Operation::Rem(size, args[0], args[1], args[2])
             }
             "cgt" => {
+                if args.len() != 3 {
+                    halt_compilation("[E008] This function takes 3 arguments", &line);
+                }
                 Operation::Cgt(size, args[0], args[1], args[2])
             }
             "clt" => {
+                if args.len() != 3 {
+                    halt_compilation("[E008] This function takes 3 arguments", &line);
+                }
                 Operation::Clt(size, args[0], args[1], args[2])
             }
             "jmp" => {
+                if args.len() != 1 {
+                    halt_compilation("[E008] This function takes 1 argument", &line);
+                }
                 Operation::Jmp(args[0])
             }
             "jie" => {
+                if args.len() != 2 {
+                    halt_compilation("[E008] This function takes 2 arguments", &line);
+                }
                 Operation::Jie(size, args[0], args[1])
             }
             "jne" => {
+                if args.len() != 2 {
+                    halt_compilation("[E008] This function takes 2 arguments", &line);
+                }
                 Operation::Jne(size, args[0], args[1])
             }
             "puti" => {
+                if args.len() != 1 {
+                    halt_compilation("[E008] This function takes 1 argument", &line);
+                }
                 Operation::PutI(size, args[0])
             }
             "putc" => {
+                if args.len() != 1 {
+                    halt_compilation("[E008] This function takes 1 argument", &line);
+                }
                 Operation::PutC(size, args[0])
             }
             "imz" => {
+                if args.len() != 1 {
+                    halt_compilation("[E008] This function takes 1 argument", &line);
+                }
                 Operation::Imz(size, args[0])
             }
             "equ" => {
+                if args.len() != 3 {
+                    halt_compilation("[E008] This function takes 3 argument", &line);
+                }
                 Operation::Equ(size, args[0], args[1], args[2])
             }
             "hlt" => {
                 Operation::Hlt()
             }
             _ => {
-                panic!("Unknown operation");
+                halt_compilation("[E008] Invalid opcode. Check your spelling", &line);
             }
         })
     }
@@ -236,7 +290,7 @@ fn codegen(abstract_syntax_tree: Vec<Operation>, memory_map: HashMap<String, (us
     let mut image: Vec<u8> = vec![];
     
     // Write instructions to image
-    for (index, instruction) in abstract_syntax_tree.iter().enumerate() {
+    for (_index, instruction) in abstract_syntax_tree.iter().enumerate() {
         let opcode = resolve_operation_opcode(&instruction);
         match *instruction {
             Operation::Mov(size, src1, dest) => {
@@ -304,10 +358,18 @@ fn codegen(abstract_syntax_tree: Vec<Operation>, memory_map: HashMap<String, (us
 
     // Write variables to image
     for (address, value, size) in memory_map.values() {
-        image[*address..][..*size].copy_from_slice(value.to_be_bytes()[value.to_be_bytes().len()-size..].try_into().expect("Failed to write variable to image"))
+        image[*address..][..*size].copy_from_slice(value.to_be_bytes()[value.to_be_bytes().len()-size..].try_into().expect("[COMPILER PANIC]: Failed to write variable to image"))
     }
 
     image
+}
+
+fn halt_compilation(message: &str, line: &str) -> ! {
+    eprintln!("--------------------------------------------");
+    eprintln!("Error: {}", message);
+    eprintln!("-> Compilation failed on line `{}`", line);
+    eprintln!("--------------------------------------------");
+    exit(-1);
 }
     
 fn main() {

@@ -1,5 +1,5 @@
 // Initialize variables
-set64 $current_num 3
+set64 $current_num 1
 set64 $divisor 2
 set64 $remainder 0
 set64 $is_done_checking 0
@@ -11,7 +11,7 @@ set64 $newline 10
 #outer_loop
 // Main infinite loop
 
-add64 $current_num $one $current_num
+add64 $current_num $two $current_num
 mov64 $current_num $divisor
 divt64 $divisor $two $divisor
 

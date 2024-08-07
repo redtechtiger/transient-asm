@@ -6,11 +6,11 @@ set64 $max_num 12200160415121876738
 set64 $is_max_reached 0
 
 // Characters
-set64 $newline 10
+set8 $newline 10
 
 #loop
 puti64 $sum
-putc64 $newline
+putc8 $newline
 add64 $num1 $num2 $sum
 mov64 $num2 $num1
 mov64 $sum $num2
@@ -20,5 +20,5 @@ jmp64 #loop
 
 #end
 puti64 $sum
-putc64 $newline
+putc8 $newline
 hlt64

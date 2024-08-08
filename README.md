@@ -107,7 +107,7 @@ set64 $comparison_result 0
 puti64 $value
 add64 $value !64_1 $value
 cgt64 $value !64_10 $comparison_result
-jne64 #loop
+jne64 #loop $comparison_result
 
 hlt64
 ```

@@ -2,7 +2,6 @@
 set64 $num1 0
 set64 $num2 1
 set64 $sum 1
-set64 $is_max_reached 0
 
 #loop
 puti64 $sum
@@ -10,16 +9,4 @@ putc8 !8_10
 add64 $num1 $num2 $sum
 mov64 $num2 $num1
 mov64 $sum $num2
-equ64 !64_12200160415121876738 $sum $is_max_reached
-jie64 #end $is_max_reached
-set16 $loop 513
-set16 $grb1 0
-set16 $grb2 2
-set16 $gbr3 0
-set16 $jump1 2561
-jmp8 $loop
-
-#end
-puti64 $sum
-putc8 !8_10
-hlt64
+jmp64 #loop

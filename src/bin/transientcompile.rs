@@ -433,14 +433,14 @@ fn format_mm(mm: &HashMap<String, (usize, u64, usize)>) -> String {
 fn main() {
     // Verify input parameters
     let args: Vec<String> = args().collect();
-    if args.len() < 2 {
+    if args.len() < 3 {
         println!("Stop: Incorrect amount of arguments!");
         return;
     }
 
     let mut verbose = false;
-    if args.len() > 2 {
-        verbose = args[2] == "--asm";
+    if args.len() > 3 {
+        verbose = args[3] == "--ast";
     }
 
     // Open file for reading
@@ -450,6 +450,7 @@ fn main() {
             panic!("Stop: Failed to open file");
         }
     };
+    let output_file_name = &args[2];
 
     // Read bytes into buffer
     let mut source_code: String = String::new();
@@ -471,7 +472,7 @@ fn main() {
     std::io::stdout().flush().unwrap();
 
     // Write output file
-    let mut output_file = File::create("out.bin").expect("Failed to create output file");
+    let mut output_file = File::create(output_file_name).expect("Failed to create output file");
     output_file.write(&executable).expect("Failed to write to output file");
     print!("Compiling... [==========]\n");
     

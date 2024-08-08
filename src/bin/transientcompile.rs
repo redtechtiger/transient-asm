@@ -328,7 +328,7 @@ fn gen_binary_instruction(opcode: u8, size: usize, src1: usize, src2: usize, des
     ]
 }
 
-fn codegen(abstract_syntax_tree: Vec<Operation>, memory_map: HashMap<String, (usize, u64, usize)>) -> Vec<u8> {
+fn codegen(abstract_syntax_tree: &Vec<Operation>, memory_map: &HashMap<String, (usize, u64, usize)>) -> Vec<u8> {
     let mut image: Vec<u8> = vec![];
     
     // Write instructions to image
@@ -413,13 +413,34 @@ fn halt_compilation(message: &str, line: &str) -> ! {
     eprintln!("--------------------------------------------");
     exit(-1);
 }
+
+fn format_ast(ast: &Vec<Operation>) -> String {
+    let mut out = String::new();
+    for operation in ast {
+        out += &format!("{:?}\n", operation);
+    }
+    out
+}
+
+fn format_mm(mm: &HashMap<String, (usize, u64, usize)>) -> String {
+    let mut out = String::new();
+    for (name, (address, value, size)) in mm {
+        out += &format!("[{}]: {} = {} ({}b)\n", address, name, value, size);
+    }
+    out
+}
     
 fn main() {
     // Verify input parameters
     let args: Vec<String> = args().collect();
-    if args.len() != 2 {
+    if args.len() < 2 {
         println!("Stop: Incorrect amount of arguments!");
         return;
+    }
+
+    let mut verbose = false;
+    if args.len() > 2 {
+        verbose = args[2] == "--asm";
     }
 
     // Open file for reading
@@ -445,7 +466,7 @@ fn main() {
     std::io::stdout().flush().unwrap();
 
     // Codegen
-    let executable = codegen(abstract_syntax_tree, memory_map);
+    let executable = codegen(&abstract_syntax_tree, &memory_map);
     print!("Compiling... [========= ]\r");
     std::io::stdout().flush().unwrap();
 
@@ -454,6 +475,10 @@ fn main() {
     output_file.write(&executable).expect("Failed to write to output file");
     print!("Compiling... [==========]\n");
     
+    if verbose {
+        println!("AST:\n{}\nMM:\n{}", format_ast(&abstract_syntax_tree), format_mm(&memory_map))
+    }
+
     // Done!
     println!("Success: Compilation finished ✔");
 }

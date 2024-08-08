@@ -12,7 +12,12 @@ mov64 $num2 $num1
 mov64 $sum $num2
 equ64 !64_12200160415121876738 $sum $is_max_reached
 jie64 #end $is_max_reached
-jmp64 #loop
+set16 $loop 513
+set16 $grb1 0
+set16 $grb2 2
+set16 $gbr3 0
+set16 $jump1 2561
+jmp8 $loop
 
 #end
 puti64 $sum

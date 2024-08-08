@@ -3,4 +3,12 @@ name = "transient"
 version = "0.1.0"
 edition = "2021"
 
+[[bin]]
+name = "transientvm"
+path = "src/bin/transientvm.rs"
+
+[[bin]]
+name = "transientcompile"
+path = "src/bin/transientcompile.rs"
+
 [dependencies]

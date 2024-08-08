@@ -48,7 +48,7 @@ use std::env::args;
 use std::fs::File;
 use std::io::{Read,Write};
 
-const TRANSIENT_MEM_MAX: usize = 0xFFFF;
+const TRANSIENT_MEM_MAX: usize = 0x00FF;
 
 #[derive(PartialEq)]
 pub enum TransientMode {
@@ -219,8 +219,8 @@ impl<const TRANSIENT_MEM_MAX: usize> TransientState<TRANSIENT_MEM_MAX> {
             }
             _ => {
                 panic!(
-                    "Halt: Unsupported opcode! Instruction: 0x{:0>2x}{:0>4x}{:0>4x}{:0>4x}\n-> Program Counter: {}",
-                    opcode, source1_address, source2_address, destination_address, self.program_counter
+                    "Halt: Unsupported opcode! Instruction: 0x{:0>2x}{:0>4x}{:0>4x}{:0>4x}\n-> Program Counter: {}, Transient Memory:\n{:?}",
+                    opcode, source1_address, source2_address, destination_address, self.program_counter, self.memory
                 );
             }
         }

@@ -1,7 +1,10 @@
 [package]
 name = "transient-asm"
+description = "Toolchain for TransientAssembly. Includes a compiler and virtual machine."
 version = "0.1.0"
 edition = "2021"
+license = "MIT"
+repository = "https://github.com/redtechtiger/transient-asm"
 
 [[bin]]
 name = "transientvm"

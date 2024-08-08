@@ -1,12 +1,12 @@
 # Transient
 
-## Getting started
+## 🔥 ~ Getting started ~
 > [!IMPORTANT]\
 > This is a purely education project and consequently offers no guarantees. My projects are free to use for anyone so long as the relevant licenses are followed and credit is given, where appropriate. Enjoy!
 
 This is a collection of utilities for compiling and running TransientAssembly (TASM) programs. The Transient project includes a compiler, which compilies TransientAssembly (TASM) down to TransientBytecode (TBC), which is then executed by the TransientVM (TVM).
 
-#### Installation
+#### ⬇️ Installation
 
 The compiler (transientcompile) and virtual machine (transientvm) can both be installed as a bundle using Cargo. You first need to clone the GitHub repo:
 ```
@@ -18,14 +18,14 @@ $ cd transient
 $ cargo install --path .
 ```
 
-#### Removal
+#### 🗑️ Removal
 
 If you wish to remove these utilities from your system you can do so using Cargo. Run the following command:
 ```
 $ cargo uninstall --package transient
 ```
 
-#### Sample usage
+#### 📚 Sample usage
 
 To compile and run a TransientAssembly (TASM) file, run the following command, replacing _input.tasm_ with your input and _output.tbc_ if desired:
 ```
@@ -38,7 +38,7 @@ $ transientcompile examples/fibonacci.tasm fibonacci.tbc
 $ transientvm fibonacci.tbc
 ```
 
-## TransientAssembly
+## 💻 ~ TransientAssembly ~
 This is a basic tutorial to get you started with writing TransientAssembly. As this entire project is in its early days, expect major changes to both syntax, features, and even the fundamental workings on the language. This also means that the language is very basic as of now, and may only make sense for those who are familiar with assembly or very low level code.
 #### Structure
 Every line in TransientAssembly is an instruction, with the exception of comments "//", tags "#", and empty lines. We'll get back to tags in a second, but for now, let's look at the general structure of the language. At the beginning of an instruction, you have the operation - pretty self explanatory once you read some of the examples. It's accompanied by a suffix (64, 32, 16, 8) that dictates how many bits the operation should operate on. Again, more on this later. You then have the arguments, which can be either a variable (prefixed by a `$`), or an intermediate (prefixed by a `!{size}_`, e.g. `!64_`).

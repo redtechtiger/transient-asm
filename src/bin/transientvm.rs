@@ -46,7 +46,7 @@ const HLT: u8 = 0xFF;
 
 use std::env::args;
 use std::fs::File;
-use std::io::{Read,Write};
+use std::io::{Read, Write};
 
 const TRANSIENT_MEM_MAX: usize = 0x00FF;
 
@@ -105,8 +105,7 @@ impl<const TRANSIENT_MEM_MAX: usize> TransientState<TRANSIENT_MEM_MAX> {
             self.memory.len() > address + size,
             "Halt: Attempted memory write beyond memory scope"
         );
-        self.memory[address..][..size].copy_from_slice(&data[data.len()-size..][..size]);
-
+        self.memory[address..][..size].copy_from_slice(&data[data.len() - size..][..size]);
     }
     /// Executes an instruction and returns the next program counter
     pub fn execute_instruction(&mut self, instruction: [u8; 8]) -> usize {
@@ -114,9 +113,9 @@ impl<const TRANSIENT_MEM_MAX: usize> TransientState<TRANSIENT_MEM_MAX> {
         let opcode = instruction[0];
         let size = instruction[1] as usize;
         let source1_address = u16::from_be_bytes([instruction[2], instruction[3]]) as usize;
-        let source2_address = u16::from_be_bytes([instruction[4], instruction[5]]) as usize; 
+        let source2_address = u16::from_be_bytes([instruction[4], instruction[5]]) as usize;
         let destination_address = u16::from_be_bytes([instruction[6], instruction[7]]) as usize;
-        
+
         // Validates memory pointers
         assert!(
             self.memory.len() > source1_address,
@@ -133,46 +132,89 @@ impl<const TRANSIENT_MEM_MAX: usize> TransientState<TRANSIENT_MEM_MAX> {
 
         let source1_data: &[u8] = &self.memory[source1_address..][..size];
         let source1_data: u64 = u64::from_be_bytes(u64_pad_be(source1_data));
-        
+
         let source2_data: &[u8] = &self.memory[source2_address..][..size];
         let source2_data: u64 = u64::from_be_bytes(u64_pad_be(source2_data));
-        
+
         match opcode {
             MOV => {
                 self.memory_write(destination_address, &source1_data.to_be_bytes(), size);
                 self.program_counter + 8
             }
             ADD => {
-                self.memory_write(destination_address, &(source1_data.checked_add(source2_data).expect("Halt: Arithmetic overflow")).to_be_bytes(), size);
+                self.memory_write(
+                    destination_address,
+                    &(source1_data
+                        .checked_add(source2_data)
+                        .expect("Halt: Arithmetic overflow"))
+                    .to_be_bytes(),
+                    size,
+                );
                 self.program_counter + 8
             }
             SUB => {
-                self.memory_write(destination_address, &(source1_data.checked_sub(source2_data).expect("Halt: Arithmetic overflow")).to_be_bytes(), size);
+                self.memory_write(
+                    destination_address,
+                    &(source1_data
+                        .checked_sub(source2_data)
+                        .expect("Halt: Arithmetic overflow"))
+                    .to_be_bytes(),
+                    size,
+                );
                 self.program_counter + 8
             }
             MUL => {
-                self.memory_write(destination_address, &(source1_data.checked_mul(source2_data).expect("Halt: Arithmetic overflow")).to_be_bytes(), size);
+                self.memory_write(
+                    destination_address,
+                    &(source1_data
+                        .checked_mul(source2_data)
+                        .expect("Halt: Arithmetic overflow"))
+                    .to_be_bytes(),
+                    size,
+                );
                 self.program_counter + 8
             }
             DIV_T => {
-                self.memory_write(destination_address, &(source1_data.checked_div(source2_data).expect("Halt: Arithmetic overflow")).to_be_bytes(), size);
+                self.memory_write(
+                    destination_address,
+                    &(source1_data
+                        .checked_div(source2_data)
+                        .expect("Halt: Arithmetic overflow"))
+                    .to_be_bytes(),
+                    size,
+                );
                 self.program_counter + 8
             }
             DIV_R => {
-                self.memory_write(destination_address, &
-                    ((source1_data as f64 / source2_data as f64) as u64).to_be_bytes(), size);
+                self.memory_write(
+                    destination_address,
+                    &((source1_data as f64 / source2_data as f64) as u64).to_be_bytes(),
+                    size,
+                );
                 self.program_counter + 8
             }
             REM => {
-                self.memory_write(destination_address, &(source1_data % source2_data).to_be_bytes(), size);
+                self.memory_write(
+                    destination_address,
+                    &(source1_data % source2_data).to_be_bytes(),
+                    size,
+                );
                 self.program_counter + 8
             }
             CGT => {
-                self.memory_write(destination_address, &((source1_data > source2_data) as u64).to_be_bytes(), size);
+                self.memory_write(
+                    destination_address,
+                    &((source1_data > source2_data) as u64).to_be_bytes(),
+                    size,
+                );
                 self.program_counter + 8
             }
             CLT => {
-                self.memory_write(destination_address, &((source1_data < source2_data) as u64).to_be_bytes(), size);
+                self.memory_write(
+                    destination_address,
+                    &((source1_data < source2_data) as u64).to_be_bytes(),
+                    size,
+                );
                 self.program_counter + 8
             }
             #[rustfmt::skip]
@@ -206,11 +248,19 @@ impl<const TRANSIENT_MEM_MAX: usize> TransientState<TRANSIENT_MEM_MAX> {
                 self.program_counter + 8
             }
             IMZ => {
-                self.memory_write(destination_address, &(self.image_length as u64).to_be_bytes(), size);
+                self.memory_write(
+                    destination_address,
+                    &(self.image_length as u64).to_be_bytes(),
+                    size,
+                );
                 self.program_counter + 8
             }
             EQU => {
-                self.memory_write(destination_address, &((source1_data == source2_data) as u64).to_be_bytes(), size);
+                self.memory_write(
+                    destination_address,
+                    &((source1_data == source2_data) as u64).to_be_bytes(),
+                    size,
+                );
                 self.program_counter + 8
             }
             HLT => {

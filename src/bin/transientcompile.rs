@@ -1,7 +1,6 @@
 //! Compiler that transforms Transient-C into TransientIR. (TIR)
 //! Currently under development.
 
-
 /*
     0x01: MOV byte from source1 into destination
     0x02: ADD source1 and source2 and store result in destination
@@ -22,13 +21,12 @@
     0xFF: HLT halts execution and stops processor
 */
 
-
-use std::env::args;
-use std::io::{Read, Write};
-use std::fs::File;
 use std::collections::HashMap;
-use std::process::exit;
+use std::env::args;
+use std::fs::File;
 use std::hash::{DefaultHasher, Hash, Hasher};
+use std::io::{Read, Write};
+use std::process::exit;
 
 #[derive(Debug, Hash, Eq, PartialEq)]
 enum Operation {
@@ -73,28 +71,38 @@ fn resolve_operation_opcode(operation: &Operation) -> u8 {
     }
 }
 
-fn preprocess_source_code(source_code: Vec<String>) -> (Vec<Operation>, HashMap<String, (usize, u64, usize)>) {
+fn preprocess_source_code(
+    source_code: Vec<String>,
+) -> (Vec<Operation>, HashMap<String, (usize, u64, usize)>) {
     let mut source_code = source_code;
 
     // Pass 1
     // Remove all comments
-    source_code.retain(|x| {!x.starts_with("//")});
+    source_code.retain(|x| !x.starts_with("//"));
 
     // Pass 2
     // Calculate all intermediates
     let mut intermediates: HashMap<u64, (usize, usize)> = HashMap::new();
     for line in source_code.iter() {
-        let line_tokens: Vec<String> = line.split(" ").map(|x| {x.to_owned()}).collect();
+        let line_tokens: Vec<String> = line.split(" ").map(|x| x.to_owned()).collect();
         for token in line_tokens {
             if !token.starts_with("!") {
                 continue;
             }
-            let intermediate_parts: Vec<String> = token.split("_").map(|x| {x.to_owned()}).collect();
+            let intermediate_parts: Vec<String> = token.split("_").map(|x| x.to_owned()).collect();
             if intermediate_parts.len() != 2 {
-                halt_compilation("[E011] Intermediate syntax incorrect. Did you remember to specify the size?", line);
+                halt_compilation(
+                    "[E011] Intermediate syntax incorrect. Did you remember to specify the size?",
+                    line,
+                );
             }
             let size = usize::from_str_radix(&intermediate_parts[0][1..], 10).unwrap_or_else(|_| { halt_compilation("[E003] Failed to parse size: Did you remember to specify the size of the operation?", &line)});
-            let value = usize::from_str_radix(&intermediate_parts[1], 10).unwrap_or_else(|_| { halt_compilation("[E012] Failed to parse intermediate value: Only integers are allowed", &line) });
+            let value = usize::from_str_radix(&intermediate_parts[1], 10).unwrap_or_else(|_| {
+                halt_compilation(
+                    "[E012] Failed to parse intermediate value: Only integers are allowed",
+                    &line,
+                )
+            });
             let mut hasher = DefaultHasher::new();
             token.hash(&mut hasher);
             let hash = hasher.finish();
@@ -118,7 +126,11 @@ fn preprocess_source_code(source_code: Vec<String>) -> (Vec<Operation>, HashMap<
     let mut lines_of_ir = 0usize;
     for line in &source_code {
         // Check if it's actual IR
-        if !line.is_empty() && !line.starts_with("#") && !line.starts_with("//") && !line.starts_with("set") {
+        if !line.is_empty()
+            && !line.starts_with("#")
+            && !line.starts_with("//")
+            && !line.starts_with("set")
+        {
             lines_of_ir += 1;
         }
     }
@@ -135,16 +147,25 @@ fn preprocess_source_code(source_code: Vec<String>) -> (Vec<Operation>, HashMap<
             continue;
         }
         // set{bits} $variable value
-        let line_tokens: Vec<String> = line.split(" ").map(|x| {x.to_owned()}).collect();
+        let line_tokens: Vec<String> = line.split(" ").map(|x| x.to_owned()).collect();
         if line_tokens.len() != 3 {
-            halt_compilation("[E001] Invalid set syntax: Did you remember to initialize the variable?", line);
+            halt_compilation(
+                "[E001] Invalid set syntax: Did you remember to initialize the variable?",
+                line,
+            );
         }
         if !line_tokens[1].starts_with("$") {
-            halt_compilation("[E002] Invalid variable: Did you remember to preface it with a dollar sign? ($)", line);
+            halt_compilation(
+                "[E002] Invalid variable: Did you remember to preface it with a dollar sign? ($)",
+                line,
+            );
         }
         // Check if variable exists
         if memory_map.get(&line_tokens[1][1..]).is_some() {
-            halt_compilation("[E010] Variable memory collision: Did you initialize the same variable twice?", &line);
+            halt_compilation(
+                "[E010] Variable memory collision: Did you initialize the same variable twice?",
+                &line,
+            );
         }
         let size = match usize::from_str_radix(&line_tokens[0][3..], 10) {
             Ok(x) => x / 8,
@@ -152,21 +173,22 @@ fn preprocess_source_code(source_code: Vec<String>) -> (Vec<Operation>, HashMap<
         };
         let value = match u64::from_str_radix(&line_tokens[2], 10) {
             Ok(x) => x,
-            Err(..) => halt_compilation("[E004] Failed to parse value: Only integer values are allowed", line)
+            Err(..) => halt_compilation(
+                "[E004] Failed to parse value: Only integer values are allowed",
+                line,
+            ),
         };
 
         memory_map.insert(
             line_tokens[1][1..].to_string(),
-            (ir_size_bytes + memory_offset, value, size)
+            (ir_size_bytes + memory_offset, value, size),
         );
         memory_offset += size
     }
 
     // Pass 6
     // Erase sets, and empty lines
-    source_code.retain(|line| {
-        !line.is_empty() && !line.starts_with("set")
-    });
+    source_code.retain(|line| !line.is_empty() && !line.starts_with("set"));
 
     // Pass 7
     // Repeatedly scan and generate tag addresses
@@ -177,7 +199,7 @@ fn preprocess_source_code(source_code: Vec<String>) -> (Vec<Operation>, HashMap<
         for (index, line) in source_code.iter().enumerate() {
             if line.starts_with("#") {
                 clean = false;
-                jump_addresses.insert(line[1..].to_owned(), index*8);
+                jump_addresses.insert(line[1..].to_owned(), index * 8);
                 index_to_remove = index;
                 break;
             }
@@ -193,9 +215,12 @@ fn preprocess_source_code(source_code: Vec<String>) -> (Vec<Operation>, HashMap<
     // Build abstract syntax tree
     let mut abstract_syntax_tree: Vec<Operation> = Vec::new();
     for line in source_code {
-        let line_tokens: Vec<String> = line.split(" ").map(|x| {x.to_owned()}).collect();
+        let line_tokens: Vec<String> = line.split(" ").map(|x| x.to_owned()).collect();
         // Extract 'add' from 'add64'
-        let opcode: String = line_tokens[0].chars().filter(|x|{x.is_alphabetic()}).collect::<String>();
+        let opcode: String = line_tokens[0]
+            .chars()
+            .filter(|x| x.is_alphabetic())
+            .collect::<String>();
         let size: usize = usize::from_str_radix(&line_tokens[0].chars().filter(|x|{x.is_numeric()}).collect::<String>(), 10).unwrap_or_else(|_| { halt_compilation("[E003] Failed to parse size: Did you remember to specify the size of the operation?", &line)}) / 8;
         let args: Vec<usize> = line_tokens[1..].iter().map(|x|{
             if x.starts_with("#") {
@@ -218,7 +243,7 @@ fn preprocess_source_code(source_code: Vec<String>) -> (Vec<Operation>, HashMap<
                     halt_compilation("[E008] This function takes 3 arguments", &line);
                 }
                 Operation::Add(size, args[0], args[1], args[2])
-            },
+            }
             "sub" => {
                 if args.len() != 3 {
                     halt_compilation("[E008] This function takes 3 arguments", &line);
@@ -303,9 +328,7 @@ fn preprocess_source_code(source_code: Vec<String>) -> (Vec<Operation>, HashMap<
                 }
                 Operation::Equ(size, args[0], args[1], args[2])
             }
-            "hlt" => {
-                Operation::Hlt()
-            }
+            "hlt" => Operation::Hlt(),
             _ => {
                 halt_compilation("[E009] Invalid opcode. Check your spelling", &line);
             }
@@ -315,7 +338,13 @@ fn preprocess_source_code(source_code: Vec<String>) -> (Vec<Operation>, HashMap<
     (abstract_syntax_tree, memory_map)
 }
 
-fn gen_binary_instruction(opcode: u8, size: usize, src1: usize, src2: usize, dest: usize) -> [u8; 8] {
+fn gen_binary_instruction(
+    opcode: u8,
+    size: usize,
+    src1: usize,
+    src2: usize,
+    dest: usize,
+) -> [u8; 8] {
     [
         opcode,
         size as u8,
@@ -328,9 +357,12 @@ fn gen_binary_instruction(opcode: u8, size: usize, src1: usize, src2: usize, des
     ]
 }
 
-fn codegen(abstract_syntax_tree: &Vec<Operation>, memory_map: &HashMap<String, (usize, u64, usize)>) -> Vec<u8> {
+fn codegen(
+    abstract_syntax_tree: &Vec<Operation>,
+    memory_map: &HashMap<String, (usize, u64, usize)>,
+) -> Vec<u8> {
     let mut image: Vec<u8> = vec![];
-    
+
     // Write instructions to image
     for (_index, instruction) in abstract_syntax_tree.iter().enumerate() {
         let opcode = resolve_operation_opcode(&instruction);
@@ -396,11 +428,15 @@ fn codegen(abstract_syntax_tree: &Vec<Operation>, memory_map: &HashMap<String, (
     }
 
     // Allocate size for new vars
-    image.resize(image.len()+var_size, 0);
+    image.resize(image.len() + var_size, 0);
 
     // Write variables to image
     for (address, value, size) in memory_map.values() {
-        image[*address..][..*size].copy_from_slice(value.to_be_bytes()[value.to_be_bytes().len()-size..].try_into().expect("[COMPILER PANIC]: Failed to write variable to image"))
+        image[*address..][..*size].copy_from_slice(
+            value.to_be_bytes()[value.to_be_bytes().len() - size..]
+                .try_into()
+                .expect("[COMPILER PANIC]: Failed to write variable to image"),
+        )
     }
 
     image
@@ -429,7 +465,7 @@ fn format_mm(mm: &HashMap<String, (usize, u64, usize)>) -> String {
     }
     out
 }
-    
+
 fn main() {
     // Verify input parameters
     let args: Vec<String> = args().collect();
@@ -457,7 +493,7 @@ fn main() {
     if let Err(_) = input_file.read_to_string(&mut source_code) {
         panic!("Stop: Failed to read file contents");
     }
-    let source_code: Vec<String> = source_code.split("\n").map(|x| {x.to_owned()}).collect();
+    let source_code: Vec<String> = source_code.split("\n").map(|x| x.to_owned()).collect();
     print!("Compiling... [          ]\r");
     std::io::stdout().flush().unwrap();
 
@@ -473,11 +509,17 @@ fn main() {
 
     // Write output file
     let mut output_file = File::create(output_file_name).expect("Failed to create output file");
-    output_file.write(&executable).expect("Failed to write to output file");
+    output_file
+        .write(&executable)
+        .expect("Failed to write to output file");
     print!("Compiling... [==========]\n");
-    
+
     if verbose {
-        println!("AST:\n{}\nMM:\n{}", format_ast(&abstract_syntax_tree), format_mm(&memory_map))
+        println!(
+            "AST:\n{}\nMM:\n{}",
+            format_ast(&abstract_syntax_tree),
+            format_mm(&memory_map)
+        )
     }
 
     // Done!

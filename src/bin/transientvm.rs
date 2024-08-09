@@ -48,7 +48,7 @@ use std::env::args;
 use std::fs::File;
 use std::io::Read;
 
-const TRANSIENT_MEM_MAX: usize = 0x00FF;
+const TRANSIENT_MEM_MAX: usize = 0xFFFF;
 
 #[derive(PartialEq)]
 pub enum TransientMode {

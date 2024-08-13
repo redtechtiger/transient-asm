@@ -26,13 +26,95 @@
 //! fill the transient memory with program data up to the programs length. To get the length of the
 //! program, see opcodes above.
 
+/*
+Mov
+Layout: opcode ptr_mode add_size arg_1 arg_2
+Opcode: 0x01
+Description: Sets arg_1 to arg_2
+
+Add
+Layout: opcode ptr_mode add_size arg_1 arg_2 arg_3
+Opcode: 0x02
+Description: Adds arg_1 and arg_2 and stores in arg_3
+
+Sub
+Layout: opcode ptr_mode add_size arg_1 arg_2 arg_3
+Opcode: 0x03
+Description: Subtracts arg_2 from arg_1 and stores in arg_3
+
+Mul
+Layout: opcode ptr_mode add_size arg_1 arg_2 arg_3
+Opcode: 0x04
+Description: Multiplies arg_1 and arg_2 and stores in arg_3
+
+Div
+Layout: opcode ptr_mode add_size arg_1 arg_2 arg_3
+Opcode: 0x05
+Description: Divides arg_1 by arg_2 and stores quotient in arg_3
+
+Rem
+Layout: opcode ptr_mode add_size arg_1 arg_2 arg_3
+Opcode: 0x06
+Description: Divides arg_1 and arg_2 and stores remainder in arg_3
+
+Equ
+Layout: opcode ptr_mode add_size arg_1 arg_2 arg_3
+Opcode: 0x07
+Description: If arg_1 is equal to arg_2, store 0x1 in arg_3, otherwise store 0x0
+
+Cgt
+Layout: opcode ptr_mode add_size arg_1 arg_2 arg_3
+Opcode: 0x08
+Description: If arg_1 is greater than arg_2, store 0x1 in arg_3, otherwise store 0x0
+
+Clt
+Layout: opcode ptr_mode add_size arg_1 arg_2 arg_3
+Opcode: 0x09
+Description: If arg_1 is less than arg_2, store 0x1 in arg_3, otherwise store 0x0
+
+Jmp
+Layout: opcode ptr_mode arg_1
+Opcode: 0x0A
+Description: Set program counter to arg_1, effectively jumping to arg_1
+
+Jie
+Layout: opcode ptr_mode add_size arg_1 arg_2
+Opcode: 0x0B
+Description: Set program counter to arg_2 if arg_1 is 0x1.
+
+Jne
+Layout: opcode ptr_mode add_size arg_1 arg_2
+Opcode: 0x0C
+Description: Set program counter to arg_2 if arg_1 is 0x0.
+
+PutI
+Layout: opcode ptr_mode add_size arg_1
+Opcode: 0x0D
+Description: Print arg_1 to the console as an integer.
+
+PutC
+Layout: opcode ptr_mode add_size arg_1
+Opcode: 0x0E
+Description: Print arg_1 to the console as an ascii character.
+
+Imz
+Layout: opcode ptr_mode add_size arg_1
+Opcode: 0x0F
+Description: Invokes the image size (in bytes) from the virtual machine and stores it in arg_1
+
+Hlt
+Layout: opcode
+Opcode: 0xFF
+Description: Halts execution and exits the virtual machine
+*/
+
 const MOV: u8 = 0x01;
 const ADD: u8 = 0x02;
 const SUB: u8 = 0x03;
 const MUL: u8 = 0x04;
-const DIV_T: u8 = 0x05;
-const DIV_R: u8 = 0x06;
-const REM: u8 = 0x07;
+const DIV: u8 = 0x05;
+const REM: u8 = 0x06;
+const EQU: u8 = 0x07;
 const CGT: u8 = 0x08;
 const CLT: u8 = 0x09;
 const JMP: u8 = 0x0A;
@@ -41,7 +123,6 @@ const JNE: u8 = 0x0C;
 const PUT_I: u8 = 0x0D;
 const PUT_C: u8 = 0x0E;
 const IMZ: u8 = 0x0F;
-const EQU: u8 = 0x10;
 const HLT: u8 = 0xFF;
 
 use std::env::args;
@@ -57,7 +138,8 @@ pub enum TransientMode {
 }
 
 pub struct TransientState<const TRANSIENT_MEM_MAX: usize> {
-    pub memory: [u8; TRANSIENT_MEM_MAX],
+    pub memory: Vec<u8>,
+    pub memory_limit: usize,
     pub image_length: usize, // Length of executable code in memory
     pub program_counter: usize,
     pub mode: TransientMode,
@@ -68,7 +150,8 @@ impl<const TRANSIENT_MEM_MAX: usize> TransientState<TRANSIENT_MEM_MAX> {
     /// size of TRANSIENT_MEM_MAX bytes.
     pub fn new() -> Self {
         TransientState {
-            memory: [0u8; TRANSIENT_MEM_MAX],
+            memory: vec![],
+            memory_limit: TRANSIENT_MEM_MAX,
             image_length: 0,
             program_counter: 0,
             mode: TransientMode::HALTED,
@@ -76,11 +159,11 @@ impl<const TRANSIENT_MEM_MAX: usize> TransientState<TRANSIENT_MEM_MAX> {
     }
     /// Loads a transient memory image into a state/processor at a specified offset.
     pub fn load_image(&mut self, offset: usize, image: &[u8]) {
-        assert!(
-            self.memory.len() >= image.len(),
-            "Halt: Text section doesn't fit into transient memory"
-        );
+        // Allocate space for image and set it to 0x00
+        self.memory.resize(image.len(), 0x00);
+        // Copy over image data
         self.memory[offset..image.len() + offset].copy_from_slice(image);
+        // Set image lengt of processor data
         self.image_length = image.len();
     }
     /// Starts a loop that runs the processor until halted
@@ -89,191 +172,35 @@ impl<const TRANSIENT_MEM_MAX: usize> TransientState<TRANSIENT_MEM_MAX> {
         self.mode = TransientMode::RUNNING;
         while self.mode == TransientMode::RUNNING {
             let instruction = self.resolve_instruction(self.program_counter);
-            self.program_counter = self.execute_instruction(instruction);
+            self.program_counter = self.execute_instruction(&instruction);
         }
     }
-    /// Fetches an instruction at the given address (mind the alignment!)
-    pub fn resolve_instruction(&self, base: usize) -> [u8; 8] {
-        assert!(
-            self.memory.len() > base + 7,
-            "Halt: Attempted instruction resolution beyond memory space"
-        );
-        self.memory[base..][..8].try_into().unwrap()
-    }
-    pub fn memory_write(&mut self, address: usize, data: &[u8], size: usize) {
-        assert!(
-            self.memory.len() > address + size,
-            "Halt: Attempted memory write beyond memory scope"
-        );
-        self.memory[address..][..size].copy_from_slice(&data[data.len() - size..][..size]);
+    pub fn resolve_instruction(&self, base_ptr: usize) -> Vec<u8> {
+        // Fetch correct number of bytes depending on instruction
+        match self.memory[base_ptr] {
+            MOV => &self.memory[base_ptr..][..5],
+            ADD => &self.memory[base_ptr..][..6],
+            SUB => &self.memory[base_ptr..][..6],
+            MUL => &self.memory[base_ptr..][..6],
+            DIV => &self.memory[base_ptr..][..6],
+            REM => &self.memory[base_ptr..][..6],
+            EQU => &self.memory[base_ptr..][..6],
+            CGT => &self.memory[base_ptr..][..6],
+            CLT => &self.memory[base_ptr..][..6],
+            JMP => &self.memory[base_ptr..][..3],
+            JIE => &self.memory[base_ptr..][..5],
+            JNE => &self.memory[base_ptr..][..5],
+            PUT_I => &self.memory[base_ptr..][..4],
+            PUT_C => &self.memory[base_ptr..][..4],
+            IMZ => &self.memory[base_ptr..][..4],
+            HLT => &self.memory[base_ptr..][..1],
+            _ => panic!("[Halt]: Instruction resolution failed: Invalid opcode")
+        }.to_vec()
     }
     /// Executes an instruction and returns the next program counter
-    pub fn execute_instruction(&mut self, instruction: [u8; 8]) -> usize {
+    pub fn execute_instruction(&mut self, instruction: &[u8]) -> usize {
         // Decodes instruction
         let opcode = instruction[0];
-        let size = instruction[1] as usize;
-        let source1_address = u16::from_be_bytes([instruction[2], instruction[3]]) as usize;
-        let source2_address = u16::from_be_bytes([instruction[4], instruction[5]]) as usize;
-        let destination_address = u16::from_be_bytes([instruction[6], instruction[7]]) as usize;
-
-        // Validates memory pointers
-        assert!(
-            self.memory.len() > source1_address,
-            "Halt: Attempt to access memory beyond memory space (source1)"
-        );
-        assert!(
-            self.memory.len() > source2_address,
-            "Halt: Attempt to access memory beyond memory space (source2)"
-        );
-        assert!(
-            self.memory.len() > destination_address,
-            "Halt: Attempt to access memory beyond memory space (destination)"
-        );
-
-        let source1_data: &[u8] = &self.memory[source1_address..][..size];
-        let source1_data: u64 = u64::from_be_bytes(u64_pad_be(source1_data));
-
-        let source2_data: &[u8] = &self.memory[source2_address..][..size];
-        let source2_data: u64 = u64::from_be_bytes(u64_pad_be(source2_data));
-
-        match opcode {
-            MOV => {
-                self.memory_write(destination_address, &source1_data.to_be_bytes(), size);
-                self.program_counter + 8
-            }
-            ADD => {
-                self.memory_write(
-                    destination_address,
-                    &(source1_data
-                        .checked_add(source2_data)
-                        .expect("Halt: Arithmetic overflow"))
-                    .to_be_bytes(),
-                    size,
-                );
-                self.program_counter + 8
-            }
-            SUB => {
-                self.memory_write(
-                    destination_address,
-                    &(source1_data
-                        .checked_sub(source2_data)
-                        .expect("Halt: Arithmetic overflow"))
-                    .to_be_bytes(),
-                    size,
-                );
-                self.program_counter + 8
-            }
-            MUL => {
-                self.memory_write(
-                    destination_address,
-                    &(source1_data
-                        .checked_mul(source2_data)
-                        .expect("Halt: Arithmetic overflow"))
-                    .to_be_bytes(),
-                    size,
-                );
-                self.program_counter + 8
-            }
-            DIV_T => {
-                self.memory_write(
-                    destination_address,
-                    &(source1_data
-                        .checked_div(source2_data)
-                        .expect("Halt: Arithmetic overflow"))
-                    .to_be_bytes(),
-                    size,
-                );
-                self.program_counter + 8
-            }
-            DIV_R => {
-                self.memory_write(
-                    destination_address,
-                    &((source1_data as f64 / source2_data as f64) as u64).to_be_bytes(),
-                    size,
-                );
-                self.program_counter + 8
-            }
-            REM => {
-                self.memory_write(
-                    destination_address,
-                    &(source1_data % source2_data).to_be_bytes(),
-                    size,
-                );
-                self.program_counter + 8
-            }
-            CGT => {
-                self.memory_write(
-                    destination_address,
-                    &((source1_data > source2_data) as u64).to_be_bytes(),
-                    size,
-                );
-                self.program_counter + 8
-            }
-            CLT => {
-                self.memory_write(
-                    destination_address,
-                    &((source1_data < source2_data) as u64).to_be_bytes(),
-                    size,
-                );
-                self.program_counter + 8
-            }
-            #[rustfmt::skip]
-            JMP => {
-                source1_address
-            },
-            JIE => {
-                if source2_data == 0 {
-                    // Zero
-                    self.program_counter + 8
-                } else {
-                    // Nonzero
-                    source1_address
-                }
-            }
-            JNE => {
-                if source2_data == 0 {
-                    // Zero
-                    source1_address
-                } else {
-                    // Nonzero
-                    self.program_counter + 8
-                }
-            }
-            PUT_I => {
-                print!("{}", source1_data);
-                self.program_counter + 8
-            }
-            PUT_C => {
-                print!("{}", char::from(source1_data as u8));
-                self.program_counter + 8
-            }
-            IMZ => {
-                self.memory_write(
-                    destination_address,
-                    &(self.image_length as u64).to_be_bytes(),
-                    size,
-                );
-                self.program_counter + 8
-            }
-            EQU => {
-                self.memory_write(
-                    destination_address,
-                    &((source1_data == source2_data) as u64).to_be_bytes(),
-                    size,
-                );
-                self.program_counter + 8
-            }
-            HLT => {
-                self.mode = TransientMode::HALTED;
-                self.program_counter
-            }
-            _ => {
-                panic!(
-                    "Halt: Unsupported opcode! Instruction: 0x{:0>2x}{:0>4x}{:0>4x}{:0>4x}\n-> Program Counter: {}, Transient Memory:\n{:?}",
-                    opcode, source1_address, source2_address, destination_address, self.program_counter, self.memory
-                );
-            }
-        }
     }
 }
 

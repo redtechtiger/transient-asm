@@ -11,14 +11,9 @@ This is a collection of utilities for compiling and running TransientAssembly (T
 > [!NOTE]\
 > This guide assumes that you have a Rust toolchain installed. If you don't have this, install Rust using rustup or a suitable equivalent. A rust compiler is only needed when first installing the compiler and virtual machine. Their runtime do not rely on the rust toolchain.
 
-The compiler (transientcompile) and virtual machine (transientvm) can both be installed as a bundle using Cargo. You first need to clone the GitHub repo:
+The compiler (transientcompile) and virtual machine (transientvm) can both be installed as a bundle using Cargo.
 ```
-$ git clone https://github.com/redtechtiger/transient
-```
-Then, navigate into the newly created directory and run Cargo to install the binaries:
-```
-$ cd transient
-$ cargo install --path .
+$ cargo install transient-asm
 ```
 
 ### 🗑️ Removal

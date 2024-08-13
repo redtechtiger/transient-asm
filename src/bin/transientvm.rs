@@ -217,8 +217,20 @@ impl<const TRANSIENT_MEM_MAX: usize> TransientState<TRANSIENT_MEM_MAX> {
             }
         }
     }
-    pub fn memory_write() {
-
+    pub fn memory_write(&mut self, pointer_mode: u8, address_size: u8, input: u32, data: u64) {
+        match pointer_mode {
+            0 => {
+                self.memory[input as usize..][..address_size as usize].copy_from_slice(&data.to_le_bytes()[..address_size as usize]);
+            }
+            1 => {
+                let pointer_bytes = &self.memory[input as usize..][..4];
+                let pointer = u32::from_le_bytes(pointer_bytes.try_into().expect("[Halt]: Memory write failed: Couldn't parse internal memory slice"));
+                self.memory[pointer as usize..][..address_size as usize].copy_from_slice(&data.to_le_bytes()[..address_size as usize])
+            }
+            _ => {
+                panic!("[Halt]: Memory write failed: Invalid pointer mode");
+            }
+        }
     }
     /// Executes an instruction and returns the next program counter
     pub fn execute_instruction(&mut self, instruction: &[u8]) -> usize {

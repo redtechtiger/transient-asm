@@ -236,10 +236,17 @@ impl<const TRANSIENT_MEM_MAX: usize> TransientState<TRANSIENT_MEM_MAX> {
     pub fn execute_instruction(&mut self, instruction: &[u8]) -> usize {
         // Decodes instruction
         let opcode = instruction[0];
-        let pointer_mode = instruction
+        let pointer_mode = pointer_mode_decode(instruction);
+        let address_size = instruction.get(2);
         match opcode {
             MOV => {
-                let value = self.memory_fetch(instruction[1]);
+                let pointer_mode = pointer_mode.expect("[Halt]: Pointer mode decode failed: Function requires the pointer mode to be explicit");
+                let address_size = address_size.expect("[Halt]: Address size read failed: Function requires the address size to be explicit");
+                let args = [
+                    u32::from_le_bytes(instruction[3..7].try_into().expect("[Halt]: Argument parsing failed")),
+                    u32::from_le_bytes(instruction[7..11].try_into().expect("[Halt]: Argument parsing failed")),
+                ];
+                let value = self.memory_fetch(pointer_mode[0], *address_size, args[0]);
                 self.program_counter + instruction.len()
             }
             ADD => {

@@ -197,16 +197,99 @@ impl<const TRANSIENT_MEM_MAX: usize> TransientState<TRANSIENT_MEM_MAX> {
             _ => panic!("[Halt]: Instruction resolution failed: Invalid opcode")
         }.to_vec()
     }
+    pub fn memory_fetch(&self, pointer_mode: u8, address_size: u8, input: u32) -> u64 {
+        match pointer_mode {
+            0 => {
+                let variable_bytes = u64_pad_le(&self.memory[input as usize..][..address_size as usize]);
+                u64::from_le_bytes(variable_bytes.try_into().expect("[Halt]: Memory fetch failed: Couldn't parse internal memory slice"))
+            }
+            1 => {
+                let pointer_bytes = &self.memory[input as usize..][..4];
+                let pointer = u32::from_le_bytes(pointer_bytes.try_into().expect("[Halt]: Memory fetch failed: Couldn't parse internal memory slice"));
+                let variable_bytes = u64_pad_le(&self.memory[pointer as usize..][..address_size as usize]);
+                u64::from_le_bytes(variable_bytes.try_into().expect("[Halt]: Memory fetch failed: Couldn't parse internal memory slice"))
+            }
+            2 => {
+                input as u64
+            }
+            _ => {
+                panic!("[Halt]: Memory fetch failed: Invalid pointer mode");
+            }
+        }
+    }
+    pub fn memory_write() {
+
+    }
     /// Executes an instruction and returns the next program counter
     pub fn execute_instruction(&mut self, instruction: &[u8]) -> usize {
         // Decodes instruction
         let opcode = instruction[0];
+        match opcode {
+            MOV => {
+                
+                self.program_counter + instruction.len()
+            }
+            ADD => {
+
+                self.program_counter + instruction.len()
+            }
+            SUB => {
+
+                self.program_counter + instruction.len()
+            }
+            MUL => {
+
+                self.program_counter + instruction.len()
+            }
+            DIV => {
+
+                self.program_counter + instruction.len()
+            }
+            REM => {
+
+                self.program_counter + instruction.len()
+            }
+            EQU => {
+
+                self.program_counter + instruction.len()
+            }
+            CGT => {
+
+                self.program_counter + instruction.len()
+            }
+            CLT => {
+
+                self.program_counter + instruction.len()
+            }
+            JMP => {
+
+            }
+            JIE => {
+
+            }
+            JNE => {
+            }
+            PUT_=> {
+                self.program_counter + instruction.len()
+            }
+            PUT_=> {
+                self.program_counter + instruction.len()
+            }
+            IMZ => {
+                self.program_counter + instruction.len()
+            }
+            HLT => {
+                self.mode = TransientMode::HALTED;
+                self.program_counter + instruction.len()
+            }
+            _ => panic!("[Halt]: Instruction execution failed: Invalid opcode\n-> This is likely a bug in the virtual machine")
+        }
     }
 }
 
-fn u64_pad_be(data: &[u8]) -> [u8; 8] {
+fn u64_pad_le(data: &[u8]) -> [u8; 8] {
     let mut padded = [0u8; 8];
-    padded[(8 - data.len())..].copy_from_slice(data);
+    padded[..data.len()].copy_from_slice(data);
     padded
 }
 

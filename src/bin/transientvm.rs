@@ -236,9 +236,10 @@ impl<const TRANSIENT_MEM_MAX: usize> TransientState<TRANSIENT_MEM_MAX> {
     pub fn execute_instruction(&mut self, instruction: &[u8]) -> usize {
         // Decodes instruction
         let opcode = instruction[0];
+        let pointer_mode = instruction
         match opcode {
             MOV => {
-                
+                let value = self.memory_fetch(instruction[1]);
                 self.program_counter + instruction.len()
             }
             ADD => {
@@ -303,6 +304,19 @@ fn u64_pad_le(data: &[u8]) -> [u8; 8] {
     let mut padded = [0u8; 8];
     padded[..data.len()].copy_from_slice(data);
     padded
+}
+
+fn pointer_mode_decode(instruction: &[u8]) -> Result<[u8; 4], ()> {
+    if instruction.len() < 2 {
+        Err(())
+    } else {
+        Ok([
+            instruction[1] & 0b00000011,
+            instruction[1] & 0b00001100 >> 2,
+            instruction[1] & 0b00110000 >> 4,
+            instruction[1] & 0b11000000 >> 6,
+        ])
+    }
 }
 
 fn main() {
